@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Share Screener</title>
+<!-- Bump ?v= whenever style.css, common.js or ticker.js changes, so browsers fetch the new files. -->
+<link rel="stylesheet" href="style.css?v=7">
+</head>
+<body>
+<header>
+  <div>
+    <a class="back" id="back" href="index.html">&larr; All shares</a>
+    <h1 id="title">Loading&hellip;</h1>
+    <div class="sub" id="subtitle"></div>
+  </div>
+  <div class="updated" id="updated"></div>
+</header>
+
+<main>
+  <div class="stale" id="stale" hidden></div>
+  <div id="content"></div>
+  <div class="note">
+    A high score is a <i>candidate worth your judgement</i>, not a buy signal &mdash; steady charts roll over all the time.
+    Not investment advice.
+  </div>
+</main>
+
+<script src="common.js?v=7"></script>
+<script src="ticker.js?v=7"></script>
+</body>
+</html>

@@ -162,6 +162,12 @@ def valuation_flags(v):
     return []
 
 
+def _round_points(rules):
+    if rules is None:
+        return None
+    return [dict(r, points=round(r["points"], 2)) for r in rules]
+
+
 def score_ticker(s, fcache, fx, price_err):
     p = load_json(price_path(s), None)
     f = fcache.get(s)
@@ -197,6 +203,12 @@ def score_ticker(s, fcache, fx, price_err):
         "sig": m["sig"] + fd["sig"],
         "valuation": val,
         "flags": valuation_flags(val),
+        "breakdown": {
+            "momentum": _round_points(scoring.momentum_breakdown(p["close"], p["volume"])),
+            "fundamentals": _round_points(scoring.fundamentals_breakdown(income)),
+        },
+        "income": income,
+        "financial_currency": (f or {}).get("financial_currency"),
         "fundamentals_period_end": income[0]["period_end"] if income else None,
         "fundamentals_fetched_at": (f or {}).get("fetched_at"),
         "spark": p["close"][-SPARK_DAYS:],

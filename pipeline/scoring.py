@@ -168,3 +168,99 @@ def composite(mom_score, fund_score):
     if fund_score is None:
         return mom_score
     return js_round(0.6 * mom_score + 0.4 * fund_score)
+
+
+# ---------- rule-by-rule breakdown (for the detail page) ----------
+# These mirror momentum() and fundamentals() above, rule for rule, but report every
+# rule (passed or not) with the points it earned. They never feed the score itself;
+# tests/test_breakdown.py checks that the points add up to exactly the real score.
+
+def _rule(key, label, points, max_points, detail, warn=None):
+    r = {"key": key, "label": label, "points": points, "max": max_points,
+         "passed": points > 0, "detail": detail}
+    if warn:
+        r["warn"] = warn
+    return r
+
+
+def _p(x):
+    """Percentage text, e.g. 0.0523 -> '+5.2%'."""
+    return "n/a" if x is None or x != x else f"{x * 100:+.1f}%"
+
+
+def momentum_breakdown(closes, volumes):
+    c = [_num(x) for x in closes]
+    v = [x if _truthy(x) else 0 for x in (_num(x) for x in volumes)]
+    if len(c) < 60:
+        return None
+    last = c[-1]
+    s20, s50 = sma(c, 20), sma(c, 50)
+    s50_prev = sma(c[: len(c) - 20], 50)
+    ret1m = _div(last, c[len(c) - 22]) - 1
+    dd1m = max_dd(c[-22:])
+    vol10, vol50 = sma(v, 10), sma(v, 50)
+    vol_ratio = _div(vol10, vol50) if _truthy(vol50) else 1
+    vs = _div(last, s50) - 1 if _truthy(s50) else None
+
+    rules = [
+        _rule("above50", "Price above its 50-day average", 20 if _truthy(s50) and last > s50 else 0, 20,
+              f"Price is {_p(vs)} vs the 50-day average"),
+        _rule("short_trend", "20-day average above 50-day average",
+              15 if _truthy(s20) and _truthy(s50) and s20 > s50 else 0, 15,
+              f"20-day is {_p(_div(s20, s50) - 1) if _truthy(s50) else 'n/a'} vs the 50-day"),
+        _rule("sma50_rising", "50-day average rising (vs 20 trading days ago)",
+              15 if _truthy(s50) and _truthy(s50_prev) and s50 > s50_prev else 0, 15,
+              f"50-day average {_p(_div(s50, s50_prev) - 1)} over 20 days" if _truthy(s50_prev)
+              else "Not enough history (needs 70 days)"),
+        _rule("ret1m", "1-month return (20 points at +12% or more)",
+              min(20, ret1m / 0.12 * 20) if ret1m > 0 else 0, 20,
+              f"1-month return {_p(ret1m)}"),
+        _rule("steady", "Steady: worst dip in the last month smaller than 8%", 15 if dd1m > -0.08 else 0, 15,
+              f"Worst fall from a high in the last month: {_p(dd1m)}"),
+        _rule("volume", "Volume rising: 10-day average 5%+ above 50-day", 10 if vol_ratio > 1.05 else 0, 10,
+              f"10-day volume is {_p(vol_ratio - 1)} vs the 50-day"),
+        _rule("not_stretched", "Not stretched: price less than 25% above 50-day",
+              5 if vs is not None and vs < 0.25 else 0, 5,
+              f"Price is {_p(vs)} vs the 50-day average",
+              warn="Overextended: more than 35% above the 50-day average" if vs is not None and vs > 0.35 else None),
+    ]
+    return rules
+
+
+def fundamentals_breakdown(years):
+    if not years or len(years) < 2:
+        return None
+    y = [{k: _num(r.get(k)) for k in ("rev", "gp", "ni")} for r in years]
+
+    def denom(x):
+        return abs(x if _truthy(x) else 1)
+
+    revg = _div(y[0]["rev"] - y[1]["rev"], denom(y[1]["rev"]))
+    revg_prev = _div(y[1]["rev"] - y[2]["rev"], denom(y[2]["rev"])) if len(y) >= 3 else None
+    gm0 = _div(y[0]["gp"], y[0]["rev"]) if _truthy(y[0]["rev"]) else None
+    gm1 = _div(y[1]["gp"], y[1]["rev"]) if _truthy(y[1]["rev"]) else None
+    has_gm = gm0 is not None and gm1 is not None and gm0 == gm0 and gm1 == gm1
+
+    return [
+        _rule("revg", "Revenue growth, latest year (50 points at +30% or more)",
+              max(0, min(50, revg / 0.30 * 50)) if math.isfinite(revg) else 0, 50,
+              f"Revenue {_p(revg)} on the year before" if math.isfinite(revg) else "Revenue not reported"),
+        _rule("accel", "Growth accelerating (faster than the year before)",
+              25 if revg_prev is not None and revg > revg_prev else 0, 25,
+              f"{_p(revg)} this year vs {_p(revg_prev)} the year before" if revg_prev is not None
+              else "Needs 3 years of results"),
+        _rule("margins", "Gross margin improved",
+              25 if gm0 is not None and gm1 is not None and gm0 > gm1 else 0, 25,
+              f"Gross margin {gm0 * 100:.1f}% vs {gm1 * 100:.1f}% the year before" if has_gm
+              else "Gross profit not reported (normal for banks)"),
+    ]
+
+
+def breakdown_total(rules):
+    """Turn rule points into a score exactly as the original does."""
+    if rules is None:
+        return None
+    total = 0
+    for r in rules:
+        total += r["points"]
+    return _clamp_round(total)

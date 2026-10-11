@@ -37,7 +37,7 @@ jobs:
 
       # If the scoring drifts from the original JavaScript (or change-tracking breaks), stop before publishing.
       - name: Check scoring still matches the original
-        run: python -m unittest -v tests.test_parity tests.test_changes
+        run: python -m unittest -v tests.test_parity tests.test_changes tests.test_breakdown
 
       - name: Fetch data and score
         run: |

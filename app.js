@@ -1,66 +1,22 @@
 // Share Screener page: reads data/latest.json (written by run_screener.py) and draws it.
-// No build step, no libraries.
+// No build step, no libraries. Needs common.js (loaded first by index.html).
 
 const STALE_DAYS = 3;
-const CCY = {USD: '$', ZAR: 'R', EUR: '€', GBP: '£'};
-const $ = id => document.getElementById(id);
 
 // If the browser has an older cached index.html, containers added in later versions may be
 // missing. Create them rather than letting the whole script fail.
-(function ensureContainers() {
+function ensureContainers() {
   if (!document.getElementById('changes')) {
     const d = document.createElement('div'); d.id = 'changes';
     const top = document.getElementById('topflags');
     top ? top.before(d) : document.querySelector('main')?.prepend(d);
   }
-})();
+}
 
 let DATA = null;
 let activeTab = null;
 let sortState = {key: 'composite', dir: -1};   // shared by every table in the tab
 
-// localStorage can be blocked (private mode, some Google Sites embeds), so never rely on it.
-const store = {
-  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
-};
-
-// ---------- formatting ----------
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
-const DASH = '<span class="dim">&ndash;</span>';
-const sym = c => CCY[c] ?? (c ? c + ' ' : '');
-
-function fmtDate(iso) {                      // '2026-10-09' -> '09/10/2026'
-  if (!iso) return '–';
-  const [y, m, d] = iso.slice(0, 10).split('-');
-  return `${d}/${m}/${y}`;
-}
-function fmtDateTime(iso) {                  // in the viewer's own time zone
-  const d = new Date(iso);
-  return d.toLocaleString('en-GB', {day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', timeZoneName: 'short'});
-}
-function money(x, c) {
-  return x == null ? DASH :
-    sym(c) + x.toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-}
-function bigMoney(x, c) {
-  if (x == null) return DASH;
-  const a = Math.abs(x);
-  if (a >= 1e12) return sym(c) + (x / 1e12).toFixed(2) + 'tn';
-  if (a >= 1e9) return sym(c) + (x / 1e9).toFixed(a >= 1e11 ? 0 : 1) + 'bn';
-  return sym(c) + (x / 1e6).toFixed(0) + 'm';
-}
-function ratio(x, title) {
-  if (x == null) return DASH;
-  if (x <= 0) return `<span class="dim" title="${esc(title)}">n/m</span>`;
-  return x >= 100 ? x.toFixed(0) : x.toFixed(1);
-}
-function pct(x) { return x == null ? DASH : `<span class="${x >= 0 ? 'pos' : 'neg'}">${(x * 100).toFixed(1)}%</span>`; }
-function scoreColor(s) { if (s == null) return 'dim'; if (s >= 70) return 'pos'; if (s < 40) return 'neg'; return ''; }
-function scoreCell(s, title) {
-  return `<span class="score ${scoreColor(s)}"${title ? ` title="${esc(title)}"` : ''}>${s ?? '&ndash;'}</span>`;
-}
 
 function sparkline(c) {
   if (!c || c.length < 2) return '';
@@ -152,7 +108,7 @@ function rowHtml(r) {
   const nameLine = `<span class="name" title="${esc(r.name)}">${esc(r.name)}</span>`;
   if (r.price == null) {
     const msg = Object.values(r.errors || {}).join('; ') || 'no data';
-    return `<tr data-sym="${esc(r.symbol)}"><td><span class="tick">${esc(r.symbol)}</span>${nameLine}</td><td colspan="${COLS.length - 1}" class="dim" style="text-align:left">${esc(msg)}</td></tr>`;
+    return `<tr data-sym="${esc(r.symbol)}"><td><a class="tick" href="${tickerUrl(r.symbol)}">${esc(r.symbol)}</a>${nameLine}</td><td colspan="${COLS.length - 1}" class="dim" style="text-align:left">${esc(msg)}</td></tr>`;
   }
   const v = r.valuation || {};
   const staleLine = r.errors?.prices ? `<span class="warnline" title="${esc(r.errors.prices)}">price update failed &middot; shown as at ${fmtDate(r.price_date)}</span>` : '';
@@ -161,7 +117,7 @@ function rowHtml(r) {
   const fundTitle = r.fundamentals_period_end ? `Latest annual results: ${fmtDate(r.fundamentals_period_end)}` :
     (r.errors?.fundamentals || 'Fundamentals unavailable');
   return `<tr data-sym="${esc(r.symbol)}">
-    <td><span class="tick">${esc(r.symbol)}</span><span class="mscore ${scoreColor(r.composite)}">${r.composite ?? ''}</span>${nameLine}${staleLine}</td>
+    <td><a class="tick" href="${tickerUrl(r.symbol)}">${esc(r.symbol)}</a><span class="mscore ${scoreColor(r.composite)}">${r.composite ?? ''}</span>${nameLine}${staleLine}</td>
     <td>${money(r.price, r.currency)}</td>
     <td>${pct(r.ret1m)}</td>
     <td>${pct(r.ret3m)}</td>
@@ -208,9 +164,9 @@ function renderTab() {
   }
   all.sort((a, b) => b.composite - a.composite);
   $('topflags').innerHTML = all.length ? '<div class="cap">Top candidates this run</div>' +
-    all.slice(0, 6).map(r => `<div class="card"><div class="t">${esc(r.symbol)}</div>
+    all.slice(0, 6).map(r => `<a class="card" href="${tickerUrl(r.symbol)}"><div class="t">${esc(r.symbol)}</div>
       <div class="s ${scoreColor(r.composite)}">${r.composite}</div>
-      <div class="name">${esc(r.group)}</div></div>`).join('') : '';
+      <div class="name">${esc(r.group)}</div></a>`).join('') : '';
 
   // one table per group
   const head = headHtml();
@@ -255,6 +211,8 @@ function setTab(id, push) {
   if (push) history.replaceState(null, '', '#' + id);
   renderTab();
 }
+function boot() {
+ensureContainers();
 $('tabs').addEventListener('click', e => {
   const b = e.target.closest('button[data-tab]');
   if (b) setTab(b.dataset.tab, true);
@@ -289,7 +247,6 @@ window.addEventListener('hashchange', () => {
   if (DATA && DATA.tabs.some(t => t.id === id)) setTab(id, false);
 });
 
-// ---------- start ----------
 fetch('data/latest.json', {cache: 'no-cache'})
   .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
   .then(d => {
@@ -303,3 +260,8 @@ fetch('data/latest.json', {cache: 'no-cache'})
     $('updated').textContent = '';
     $('groups').innerHTML = `<div class="error">Could not load the data (${esc(e.message)}). Try refreshing the page.</div>`;
   });
+}
+
+// An older cached index.html may not load common.js; fetch it ourselves in that case.
+if (typeof fmtDate === 'function') boot();
+else { const sc = document.createElement('script'); sc.src = 'common.js?v=7'; sc.onload = boot; document.head.appendChild(sc); }
