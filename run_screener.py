@@ -65,10 +65,48 @@ def now_iso():
 
 # ---------- steps ----------
 
-def load_watchlists():
-    wl = load_json(os.path.join(ROOT, "watchlists.json"), None)
-    if not wl:
-        sys.exit("watchlists.json is missing or not valid JSON.")
+class WatchlistError(Exception):
+    pass
+
+
+def read_watchlists(path):
+    """Read and check watchlists.json, explaining any mistake in plain English."""
+    try:
+        with open(path) as f:
+            wl = json.load(f)
+    except FileNotFoundError:
+        raise WatchlistError("watchlists.json is missing.")
+    except json.JSONDecodeError as e:
+        raise WatchlistError(
+            f"watchlists.json has a typo near line {e.lineno}, column {e.colno} ({e.msg}). "
+            "Usually a missing or extra comma, or a missing quote mark, on that line or the one before.")
+    if not isinstance(wl, dict) or not isinstance(wl.get("tabs"), list) or not wl["tabs"]:
+        raise WatchlistError('watchlists.json needs a "tabs" list with at least one tab.')
+    ids = set()
+    for n, tab in enumerate(wl["tabs"], 1):
+        where = f'tab {n} ("{tab.get("name", "?")}")' if isinstance(tab, dict) else f"tab {n}"
+        if not isinstance(tab, dict) or not tab.get("id") or not tab.get("name"):
+            raise WatchlistError(f'{where} needs an "id" and a "name".')
+        if tab["id"] in ids or tab["id"] == "portfolio":
+            raise WatchlistError(f'{where}: the id "{tab["id"]}" is already used. Each tab needs its own id.')
+        ids.add(tab["id"])
+        if not isinstance(tab.get("groups"), list) or not tab["groups"]:
+            raise WatchlistError(f'{where} needs a "groups" list with at least one group.')
+        for g in tab["groups"]:
+            if not isinstance(g, dict) or not g.get("name") or not isinstance(g.get("tickers"), list):
+                raise WatchlistError(f'{where}: every group needs a "name" and a "tickers" list.')
+            if not all(isinstance(t, str) for t in g["tickers"]):
+                raise WatchlistError(f'{where}, group "{g["name"]}": tickers must be in quotes, e.g. "NVDA".')
+    if not isinstance(wl.get("benchmarks", {}), dict):
+        raise WatchlistError('"benchmarks" should look like {"USD": "SPY", "ZAR": "STX40.JO"}.')
+    return wl
+
+
+def load_watchlists(path=None):
+    try:
+        wl = read_watchlists(path or os.path.join(ROOT, "watchlists.json"))
+    except WatchlistError as e:
+        sys.exit(f"PROBLEM WITH watchlists.json: {e}")
     symbols = []
     for tab in wl["tabs"]:
         for g in tab["groups"]:

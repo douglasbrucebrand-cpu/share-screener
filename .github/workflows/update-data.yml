@@ -1,11 +1,20 @@
 # Fetches fresh prices, scores everything and commits the JSON files the site reads.
 # Runs automatically at 05:00 UTC (07:00 SAST) Tuesday to Saturday, after both the
-# JSE and US markets have closed. Use "Run workflow" on the Actions tab to run it now.
+# JSE and US markets have closed, and whenever watchlists.json or the pipeline changes.
+# Use "Run workflow" on the Actions tab to run it now.
 name: Update screener data
 
 on:
   schedule:
     - cron: "0 5 * * 2-6"
+  # Also run straight away when the ticker list or the pipeline code changes.
+  push:
+    branches: [main]
+    paths:
+      - watchlists.json
+      - run_screener.py
+      - requirements.txt
+      - "pipeline/**"
   workflow_dispatch:
     inputs:
       refresh_fundamentals:
@@ -37,7 +46,7 @@ jobs:
 
       # If the scoring drifts from the original JavaScript (or change-tracking breaks), stop before publishing.
       - name: Check scoring still matches the original
-        run: python -m unittest -v tests.test_parity tests.test_changes tests.test_breakdown
+        run: python -m unittest -v tests.test_parity tests.test_changes tests.test_breakdown tests.test_watchlists
 
       - name: Fetch data and score
         run: |
