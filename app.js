@@ -5,6 +5,16 @@ const STALE_DAYS = 3;
 const CCY = {USD: '$', ZAR: 'R', EUR: '€', GBP: '£'};
 const $ = id => document.getElementById(id);
 
+// If the browser has an older cached index.html, containers added in later versions may be
+// missing. Create them rather than letting the whole script fail.
+(function ensureContainers() {
+  if (!document.getElementById('changes')) {
+    const d = document.createElement('div'); d.id = 'changes';
+    const top = document.getElementById('topflags');
+    top ? top.before(d) : document.querySelector('main')?.prepend(d);
+  }
+})();
+
 let DATA = null;
 let activeTab = null;
 let sortState = {key: 'composite', dir: -1};   // shared by every table in the tab
