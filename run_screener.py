@@ -74,6 +74,8 @@ def load_watchlists():
         for g in tab["groups"]:
             g["tickers"] = [t.strip().upper() for t in g["tickers"] if t.strip()]
             symbols += [t for t in g["tickers"] if t not in symbols]
+    # Benchmarks for the paper portfolio: price history only, never scored or shown in the tables.
+    wl["benchmarks"] = {k: v.strip().upper() for k, v in wl.get("benchmarks", {}).items()}
     return wl, symbols
 
 
@@ -248,7 +250,11 @@ def main():
         refresh_fundamentals(symbols, fcache, args.refresh_fundamentals)
         save_json(fpath, fcache, indent=1)
 
-    price_errors = refresh_prices(symbols, fcache)
+    benches = [b for b in wl["benchmarks"].values() if b not in symbols]
+    price_errors = refresh_prices(symbols + benches, fcache)
+    for b in benches:
+        if b in price_errors:
+            print(f"  warning: benchmark {b} not updated ({price_errors.pop(b)})")
 
     # Exchange rates needed to put revenue in the same currency as market cap.
     pairs = set()
@@ -271,6 +277,7 @@ def main():
         "prices_as_of": max(price_dates) if price_dates else None,
         "fx": {f"{a}{b}": round(v, 6) for (a, b), v in fx.items() if a != b},
         "tabs": wl["tabs"],
+        "benchmarks": wl["benchmarks"],
         "tickers": rows,
         "errors": [{"symbol": s, "stage": k, "message": v} for s, r in rows.items() for k, v in r["errors"].items()],
     }

@@ -4,6 +4,7 @@
   --warn:#d9a334; --bad:#e5534b; --chip:#222c38;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--text);
   font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
@@ -91,6 +92,47 @@ svg.spark{vertical-align:middle;display:block;margin-left:auto}
 .problems{margin-top:18px;font-size:12px;color:var(--muted)}
 .problems summary{cursor:pointer;color:var(--warn)}
 .problems ul{margin:8px 0 0;padding-left:18px}
+
+/* ---------- buttons, dialogs, toast ---------- */
+button{font:inherit}
+.btn,.dlg-f button:not(.ghost){background:var(--accent);border:none;color:#04111f;font-weight:600;border-radius:7px;padding:8px 14px;cursor:pointer}
+button.ghost{background:var(--chip);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px 12px;cursor:pointer}
+button.ghost:hover{border-color:var(--accent)}
+button.ghost.subtle{background:none;color:var(--muted)}
+button.danger{background:var(--bad)!important;color:#fff!important}
+button:disabled{opacity:.5;cursor:default}
+.simbtn{font-size:11px;background:none;border:1px solid var(--line);color:var(--accent);border-radius:6px;padding:3px 8px;cursor:pointer;white-space:nowrap}
+.simbtn:hover,.simbtn:focus-visible{border-color:var(--accent)}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;max-width:460px;width:calc(100% - 32px);padding:0}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+.dlg-h{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:600}
+.dlg-b{padding:14px 18px;font-size:13px}
+.dlg-b p{margin:0 0 10px}
+.dlg-f{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+.field{display:block;font-size:12px;color:var(--muted);margin:6px 0}
+.amt{display:flex;align-items:center;margin-top:4px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:0 10px}
+.amt span{color:var(--muted);font-weight:600}
+.amt input{flex:1;min-width:0;background:none;border:none;color:var(--text);font:inherit;font-size:16px;padding:8px 6px;outline:none}
+.amt:focus-within{border-color:var(--accent)}
+#pf-toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:.2s;
+  background:#0b1016;border:1px solid var(--line);border-left:3px solid var(--good);border-radius:8px;padding:10px 14px;
+  font-size:13px;max-width:calc(100% - 32px);z-index:10;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+#pf-toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+
+/* ---------- paper portfolio ---------- */
+.pf-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.pf-sum{min-width:220px}
+.pf-sum .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.pf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr));gap:16px;margin-bottom:22px}
+.pf-card{margin:0}
+.pf-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+.pf-ret{margin-left:auto;text-align:right;font-size:20px;font-weight:700;white-space:nowrap}
+.pf-ret .small{font-weight:400;color:var(--muted)}
+.name.inline{display:inline;max-width:none}
+.pf-kv{grid-template-columns:1fr auto;margin-bottom:6px}
+.pf-actions{display:flex;gap:8px;justify-content:flex-end}
+.pf-h2{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:6px;margin:8px 0 10px}
+.sim-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:-6px 0 18px}
 
 /* ---------- ticker detail page ---------- */
 .back{font-size:12px;color:var(--muted);text-decoration:none;display:inline-block;margin-bottom:4px}

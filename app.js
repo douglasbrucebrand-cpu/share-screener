@@ -1,5 +1,5 @@
 // Share Screener page: reads data/latest.json (written by run_screener.py) and draws it.
-// No build step, no libraries. Needs common.js (loaded first by index.html).
+// No build step, no libraries. Needs common.js, chart.js and portfolio.js (loaded first by index.html).
 
 const STALE_DAYS = 3;
 
@@ -11,7 +11,15 @@ function ensureContainers() {
     const top = document.getElementById('topflags');
     top ? top.before(d) : document.querySelector('main')?.prepend(d);
   }
+  if (!document.getElementById('portfolio')) {
+    const d = document.createElement('div'); d.id = 'portfolio'; d.hidden = true;
+    document.getElementById('groups').after(d);
+  }
 }
+
+// The paper portfolio is an extra tab after the watchlists.
+const PORTFOLIO_TAB = {id: 'portfolio', name: 'Paper portfolio'};
+const allTabs = () => [...DATA.tabs, PORTFOLIO_TAB];
 
 let DATA = null;
 let activeTab = null;
@@ -59,6 +67,7 @@ const COLS = [
   {key: 'mcap', label: 'Mkt cap', get: r => r.valuation?.market_cap},
   {key: 'sig', label: 'Signals', grp: true},
   {key: 'spark', label: 'Trend'},
+  {key: 'buy', label: ''},
 ];
 const pos = x => (x != null && x > 0 ? x : null);   // negative P/E isn't "cheap", so sort it with blanks
 
@@ -132,6 +141,7 @@ function rowHtml(r) {
     <td>${bigMoney(v.market_cap, r.currency)}</td>
     <td class="grp"><div class="badges">${badges}</div></td>
     <td>${sparkline(r.spark)}</td>
+    <td><button class="simbtn" data-buy="${esc(r.symbol)}" title="Record a practice buy at the latest close">Simulate buy</button></td>
   </tr>`;
 }
 
@@ -147,12 +157,20 @@ function headHtml() {
 }
 
 function renderTab() {
-  const tab = DATA.tabs.find(t => t.id === activeTab) || DATA.tabs[0];
+  const tab = allTabs().find(t => t.id === activeTab) || DATA.tabs[0];
   const T = DATA.tickers;
 
   // tab buttons
-  $('tabs').innerHTML = DATA.tabs.map(t =>
+  $('tabs').innerHTML = allTabs().map(t =>
     `<button role="tab" data-tab="${esc(t.id)}" aria-selected="${t.id === tab.id}">${esc(t.name)}</button>`).join('');
+
+  // paper portfolio tab: hide the screener parts, show the portfolio
+  const isPf = tab.id === PORTFOLIO_TAB.id;
+  for (const id of ['changes', 'topflags', 'groups', 'legend']) $(id).hidden = isPf;
+  const intro = document.querySelector('main > .note');
+  if (intro) intro.hidden = isPf;
+  $('portfolio').hidden = !isPf;
+  if (isPf) { Portfolio.render($('portfolio'), DATA); return; }
 
   $('changes').innerHTML = changesHtml(tab.id);
 
@@ -219,7 +237,7 @@ $('tabs').addEventListener('click', e => {
 });
 $('tabs').addEventListener('keydown', e => {      // arrow keys move between tabs
   if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-  const ids = DATA.tabs.map(t => t.id), i = ids.indexOf(activeTab);
+  const ids = allTabs().map(t => t.id), i = ids.indexOf(activeTab);
   setTab(ids[(i + (e.key === 'ArrowRight' ? 1 : ids.length - 1)) % ids.length], true);
   $('tabs').querySelector('[aria-selected=true]').focus();
 });
@@ -234,6 +252,10 @@ function onSort(e) {
   if (again && e.type === 'keydown') again.focus();
 }
 $('groups').addEventListener('click', onSort);
+$('groups').addEventListener('click', e => {
+  const b = e.target.closest('[data-buy]');
+  if (b) Portfolio.buy(DATA.tickers[b.dataset.buy], DATA);
+});
 $('changes').addEventListener('click', e => {
   const b = e.target.closest('[data-goto]');
   const tr = b && document.querySelector(`#groups tr[data-sym="${CSS.escape(b.dataset.goto)}"]`);
@@ -244,7 +266,7 @@ $('changes').addEventListener('click', e => {
 $('groups').addEventListener('keydown', onSort);
 window.addEventListener('hashchange', () => {
   const id = location.hash.slice(1);
-  if (DATA && DATA.tabs.some(t => t.id === id)) setTab(id, false);
+  if (DATA && allTabs().some(t => t.id === id)) setTab(id, false);
 });
 
 fetch('data/latest.json', {cache: 'no-cache'})
@@ -252,7 +274,7 @@ fetch('data/latest.json', {cache: 'no-cache'})
   .then(d => {
     DATA = d;
     const want = [location.hash.slice(1), store.get('screener_tab')];
-    activeTab = want.find(id => id && d.tabs.some(t => t.id === id)) || d.tabs[0].id;
+    activeTab = want.find(id => id && allTabs().some(t => t.id === id)) || d.tabs[0].id;
     renderStatic();
     renderTab();
   })
@@ -262,6 +284,16 @@ fetch('data/latest.json', {cache: 'no-cache'})
   });
 }
 
-// An older cached index.html may not load common.js; fetch it ourselves in that case.
-if (typeof fmtDate === 'function') boot();
-else { const sc = document.createElement('script'); sc.src = 'common.js?v=7'; sc.onload = boot; document.head.appendChild(sc); }
+// An older cached index.html may not load the shared scripts; fetch any that are missing.
+(function loadMissing() {
+  const missing = [];
+  if (typeof fmtDate === 'undefined') missing.push('common.js?v=9');
+  if (typeof lineChart === 'undefined') missing.push('chart.js?v=9');
+  if (typeof Portfolio === 'undefined') missing.push('portfolio.js?v=9');
+  (function next() {
+    if (!missing.length) return boot();
+    const sc = document.createElement('script');
+    sc.src = missing.shift(); sc.onload = next;
+    document.head.appendChild(sc);
+  })();
+})();
