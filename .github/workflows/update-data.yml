@@ -35,9 +35,9 @@ jobs:
       - name: Install
         run: pip install -r requirements.txt
 
-      # If the scoring ever drifts from the original JavaScript, stop before publishing anything.
+      # If the scoring drifts from the original JavaScript (or change-tracking breaks), stop before publishing.
       - name: Check scoring still matches the original
-        run: python -m unittest -v tests.test_parity
+        run: python -m unittest -v tests.test_parity tests.test_changes
 
       - name: Fetch data and score
         run: |

@@ -60,6 +60,20 @@ function sparkline(c) {
   return `<svg class="spark" width="${w}" height="${h}" role="img" aria-label="60-day price trend ${up ? 'up' : 'down'}"><polyline fill="none" stroke="${up ? '#3fb950' : '#e5534b'}" stroke-width="1.5" points="${pts}"/></svg>`;
 }
 
+// Composite over recent runs. Fixed minimum range of 10 points so tiny wobbles look tiny.
+function scoreSpark(trend) {
+  if (!trend || trend.length < 2) return `<span class="dim" title="Builds up one point per daily run">&ndash;</span>`;
+  const v = trend.map(p => p[1]), w = 60, h = 20;
+  let mn = Math.min(...v), mx = Math.max(...v);
+  if (mx - mn < 10) { const mid = (mx + mn) / 2; mn = mid - 5; mx = mid + 5; }
+  const pts = v.map((y, i) => `${(i / (v.length - 1) * w).toFixed(1)},${(h - 1 - (y - mn) / (mx - mn) * (h - 2)).toFixed(1)}`).join(' ');
+  const d = v[v.length - 1] - v[0];
+  const col = d > 0 ? '#3fb950' : d < 0 ? '#e5534b' : '#8b98a8';
+  const title = `Composite over the last ${v.length} runs: ${v[0]} → ${v[v.length - 1]} (since ${fmtDate(trend[0][0])})`;
+  return `<svg class="spark" width="${w}" height="${h}" role="img" aria-label="${esc(title)}"><title>${esc(title)}</title>` +
+    `<polyline fill="none" stroke="${col}" stroke-width="1.5" points="${pts}"/></svg>`;
+}
+
 // ---------- columns ----------
 // get: value used for sorting (null always sorts last). grp: draw a divider before it.
 const COLS = [
@@ -71,6 +85,8 @@ const COLS = [
   {key: 'mom', label: 'Mom', get: r => r.mom, grp: true},
   {key: 'fund', label: 'Fund', get: r => r.fund},
   {key: 'composite', label: 'Composite', get: r => r.composite},
+  {key: 'trend', label: 'Score trend', get: r => (r.trend && r.trend.length > 1 ? r.trend[r.trend.length - 1][1] - r.trend[0][1] : null),
+   title: 'Composite score over the last 30 runs (sorts by the change)'},
   {key: 'pe', label: 'P/E', get: r => pos(r.valuation?.trailing_pe), grp: true, dir: 1, title: 'Trailing price / earnings'},
   {key: 'fpe', label: 'Fwd P/E', get: r => pos(r.valuation?.forward_pe), dir: 1, title: 'Price / next year’s expected earnings'},
   {key: 'ps', label: 'P/S', get: r => r.valuation?.price_to_sales, dir: 1, title: 'Market cap / last 12 months’ revenue'},
@@ -91,12 +107,42 @@ function sortRows(rows) {
   });
 }
 
+// ---------- what changed ----------
+const chip = (s, cls = '') => `<button class="b chip ${cls}" data-goto="${esc(s)}">${esc(s)}</button>`;
+const chips = (list, cls) => list.length ? list.map(s => chip(s, cls)).join(' ') : '<span class="dim">none</span>';
+
+function changesHtml(tabId) {
+  const c = DATA.changes;
+  if (!c) return '';
+  if (!c.previous_date) {
+    return `<section class="changes"><h3>What changed</h3>
+      <p class="dim">Not enough history yet: this run is the first one saved. Changes appear after the next daily update.</p></section>`;
+  }
+  const t = c.tabs[tabId] || {new_steady: [], top6_in: [], top6_out: [], risers: [], fallers: []};
+  const top = !t.top6_in.length && !t.top6_out.length ? '<span class="dim">no change</span>' :
+    `<span class="dim">in</span> ${chips(t.top6_in, 'g')}${t.top6_out.length ? ` <span class="dim">&middot; out</span> ${chips(t.top6_out)}` : ''}`;
+  const mv = m => `<li>${chip(m.symbol)} <span class="${m.change > 0 ? 'pos' : 'neg'}">${m.change > 0 ? '▲ +' : '▼ '}${m.change}</span>` +
+    ` <span class="dim">${m.from} → ${m.to}</span></li>`;
+  const span = c.week_days >= 7 ? `over 1 week <span class="dim">(since ${fmtDate(c.week_base_date)})</span>` :
+    `over ${c.week_days} day${c.week_days === 1 ? '' : 's'} <span class="dim">(a full week of history builds up by ${fmtDate(addDays(c.week_base_date, 7))})</span>`;
+  const moves = t.risers.length || t.fallers.length ?
+    `<ul class="moves">${t.risers.map(mv).join('')}${t.fallers.map(mv).join('')}</ul>` : '<span class="dim">no moves</span>';
+  return `<section class="changes">
+    <h3>What changed <span class="dim">since the previous run on ${fmtDate(c.previous_date)}</span></h3>
+    <div class="chg-grid">
+      <div><div class="lbl">Newly Steady</div>${chips(t.new_steady, 'g')}</div>
+      <div><div class="lbl">Top six</div>${top}</div>
+      <div><div class="lbl">Biggest composite moves ${span}</div>${moves}</div>
+    </div></section>`;
+}
+function addDays(iso, n) { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+
 // ---------- render ----------
 function rowHtml(r) {
   const nameLine = `<span class="name" title="${esc(r.name)}">${esc(r.name)}</span>`;
   if (r.price == null) {
     const msg = Object.values(r.errors || {}).join('; ') || 'no data';
-    return `<tr><td><span class="tick">${esc(r.symbol)}</span>${nameLine}</td><td colspan="${COLS.length - 1}" class="dim" style="text-align:left">${esc(msg)}</td></tr>`;
+    return `<tr data-sym="${esc(r.symbol)}"><td><span class="tick">${esc(r.symbol)}</span>${nameLine}</td><td colspan="${COLS.length - 1}" class="dim" style="text-align:left">${esc(msg)}</td></tr>`;
   }
   const v = r.valuation || {};
   const staleLine = r.errors?.prices ? `<span class="warnline" title="${esc(r.errors.prices)}">price update failed &middot; shown as at ${fmtDate(r.price_date)}</span>` : '';
@@ -104,7 +150,7 @@ function rowHtml(r) {
     .map(b => `<span class="b ${b[1]}"${b[2] ? ` title="${esc(b[2])}"` : ''}>${esc(b[0])}</span>`).join('');
   const fundTitle = r.fundamentals_period_end ? `Latest annual results: ${fmtDate(r.fundamentals_period_end)}` :
     (r.errors?.fundamentals || 'Fundamentals unavailable');
-  return `<tr>
+  return `<tr data-sym="${esc(r.symbol)}">
     <td><span class="tick">${esc(r.symbol)}</span><span class="mscore ${scoreColor(r.composite)}">${r.composite ?? ''}</span>${nameLine}${staleLine}</td>
     <td>${money(r.price, r.currency)}</td>
     <td>${pct(r.ret1m)}</td>
@@ -113,6 +159,7 @@ function rowHtml(r) {
     <td class="grp">${scoreCell(r.mom)}</td>
     <td>${scoreCell(r.fund, fundTitle)}</td>
     <td>${scoreCell(r.composite)}</td>
+    <td>${scoreSpark(r.trend)}</td>
     <td class="grp">${ratio(v.trailing_pe, 'Not meaningful: negative earnings')}</td>
     <td>${ratio(v.forward_pe, 'Not meaningful: a loss is expected')}</td>
     <td>${ratio(v.price_to_sales)}</td>
@@ -140,6 +187,8 @@ function renderTab() {
   // tab buttons
   $('tabs').innerHTML = DATA.tabs.map(t =>
     `<button role="tab" data-tab="${esc(t.id)}" aria-selected="${t.id === tab.id}">${esc(t.name)}</button>`).join('');
+
+  $('changes').innerHTML = changesHtml(tab.id);
 
   // top six in this tab
   const seen = new Set(), all = [];
@@ -217,6 +266,13 @@ function onSort(e) {
   if (again && e.type === 'keydown') again.focus();
 }
 $('groups').addEventListener('click', onSort);
+$('changes').addEventListener('click', e => {
+  const b = e.target.closest('[data-goto]');
+  const tr = b && document.querySelector(`#groups tr[data-sym="${CSS.escape(b.dataset.goto)}"]`);
+  if (!tr) return;
+  tr.scrollIntoView({behavior: 'smooth', block: 'center'});
+  tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash');
+});
 $('groups').addEventListener('keydown', onSort);
 window.addEventListener('hashchange', () => {
   const id = location.hash.slice(1);

@@ -17,7 +17,7 @@ import os
 import sys
 from datetime import datetime, timedelta, timezone
 
-from pipeline import fetch, scoring
+from pipeline import changes, fetch, scoring
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data")
@@ -218,6 +218,7 @@ def update_history(rows, run_date):
         })
     keep.sort(key=lambda r: (r["date"], r["symbol"]))
     save_json(path, {"rows": keep})
+    return keep
 
 
 def main():
@@ -261,8 +262,12 @@ def main():
         "tickers": rows,
         "errors": [{"symbol": s, "stage": k, "message": v} for s, r in rows.items() for k, v in r["errors"].items()],
     }
+    hist_rows = update_history(list(rows.values()), run_date)
+    latest["changes"] = changes.build(wl["tabs"], hist_rows, run_date)
+    for s, t in changes.trends(hist_rows).items():
+        if s in rows:
+            rows[s]["trend"] = t
     save_json(os.path.join(DATA, "latest.json"), latest)
-    update_history(list(rows.values()), run_date)
 
     scored = sum(1 for r in rows.values() if r.get("composite") is not None)
     print(f"\nDone: {scored}/{len(symbols)} tickers scored, {len(latest['errors'])} problem(s) recorded.")
