@@ -1,0 +1,64 @@
+# Fetches fresh prices, scores everything and commits the JSON files the site reads.
+# Runs automatically at 05:00 UTC (07:00 SAST) Tuesday to Saturday, after both the
+# JSE and US markets have closed. Use "Run workflow" on the Actions tab to run it now.
+name: Update screener data
+
+on:
+  schedule:
+    - cron: "0 5 * * 2-6"
+  workflow_dispatch:
+    inputs:
+      refresh_fundamentals:
+        description: "Also refresh fundamentals now (normally weekly)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      # If the scoring ever drifts from the original JavaScript, stop before publishing anything.
+      - name: Check scoring still matches the original
+        run: python -m unittest -v tests.test_parity
+
+      - name: Fetch data and score
+        run: |
+          if [ "${{ inputs.refresh_fundamentals }}" = "true" ]; then
+            python run_screener.py --refresh-fundamentals
+          else
+            python run_screener.py
+          fi
+
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "No data changes."
+            exit 0
+          fi
+          git commit -m "Data update $(date -u +%Y-%m-%d)"
+          for i in 1 2 3; do
+            git pull --rebase && git push && exit 0
+            sleep 10
+          done
+          exit 1

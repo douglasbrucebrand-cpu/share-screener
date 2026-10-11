@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Share Screener</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div>
+    <h1>Share Screener</h1>
+    <div class="sub">Momentum + fundamentals &middot; updated automatically after the JSE and US closes</div>
+  </div>
+  <div class="updated" id="updated" aria-live="polite">Loading&hellip;</div>
+</header>
+
+<nav class="tabs" id="tabs" role="tablist" aria-label="Watchlists"></nav>
+
+<main>
+  <div class="stale" id="stale" hidden></div>
+
+  <div class="note">
+    <b>What you're looking at.</b> Each name is scored on <b>momentum</b> (is the price in a steady, sustained
+    uptrend, not yet overextended) and <b>fundamentals</b> (revenue growth and margin trend). The composite is
+    60% momentum, 40% fundamentals. A high score is a <i>candidate worth your judgement</i>, not a buy signal &mdash;
+    steady charts roll over all the time. Sensitivity is set to <b>balanced</b>.
+  </div>
+
+  <div class="topflags" id="topflags"></div>
+  <div id="groups"></div>
+  <div class="legend" id="legend"></div>
+  <details class="problems" id="problems" hidden></details>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
