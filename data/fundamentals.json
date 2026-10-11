@@ -35,7 +35,7 @@
   "total_revenue": 302970011648.0,
   "yahoo_price_to_sales": 18.273836,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:30+00:00"
+  "fetched_at": "2026-10-11T18:51:21+00:00"
  },
  "AMD": {
   "name": "Advanced Micro Devices, Inc.",
@@ -73,7 +73,7 @@
   "total_revenue": 41305001984.0,
   "yahoo_price_to_sales": 24.033602,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:31+00:00"
+  "fetched_at": "2026-10-11T18:51:21+00:00"
  },
  "INTC": {
   "name": "Intel Corporation",
@@ -111,7 +111,7 @@
   "total_revenue": 57031999488.0,
   "yahoo_price_to_sales": 9.704292,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:32+00:00"
+  "fetched_at": "2026-10-11T18:51:21+00:00"
  },
  "QCOM": {
   "name": "QUALCOMM Incorporated",
@@ -149,7 +149,7 @@
   "total_revenue": 44068999168.0,
   "yahoo_price_to_sales": 4.252555,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:33+00:00"
+  "fetched_at": "2026-10-11T18:51:21+00:00"
  },
  "AVGO": {
   "name": "Broadcom Inc.",
@@ -187,7 +187,7 @@
   "total_revenue": 89103998976.0,
   "yahoo_price_to_sales": 19.369032,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:34+00:00"
+  "fetched_at": "2026-10-11T18:51:22+00:00"
  },
  "TSM": {
   "name": "Taiwan Semiconductor Manufactur",
@@ -225,7 +225,7 @@
   "total_revenue": 4440492343296.0,
   "yahoo_price_to_sales": 0.5294639,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:35+00:00"
+  "fetched_at": "2026-10-11T18:51:22+00:00"
  },
  "ARM": {
   "name": "Arm Holdings plc",
@@ -263,7 +263,7 @@
   "total_revenue": 5155999744.0,
   "yahoo_price_to_sales": 55.156452,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:36+00:00"
+  "fetched_at": "2026-10-11T18:51:22+00:00"
  },
  "MRVL": {
   "name": "Marvell Technology, Inc.",
@@ -301,7 +301,7 @@
   "total_revenue": 9450300416.0,
   "yahoo_price_to_sales": 26.178577,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:37+00:00"
+  "fetched_at": "2026-10-11T18:51:22+00:00"
  },
  "MU": {
   "name": "Micron Technology, Inc.",
@@ -339,7 +339,7 @@
   "total_revenue": 133188001792.0,
   "yahoo_price_to_sales": 8.741286,
   "error": null,
-  "fetched_at": "2026-10-11T18:30:09+00:00"
+  "fetched_at": "2026-10-11T18:51:23+00:00"
  },
  "WDC": {
   "name": "Western Digital Corporation",
@@ -377,7 +377,7 @@
   "total_revenue": 12919000064.0,
   "yahoo_price_to_sales": 11.511042,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:39+00:00"
+  "fetched_at": "2026-10-11T18:51:23+00:00"
  },
  "STX": {
   "name": "Seagate Technology Holdings PLC",
@@ -415,7 +415,7 @@
   "total_revenue": 12195000320.0,
   "yahoo_price_to_sales": 14.600142,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:40+00:00"
+  "fetched_at": "2026-10-11T18:51:23+00:00"
  },
  "ASML": {
   "name": "ASML Holding N.V. - New York Re",
@@ -453,7 +453,7 @@
   "total_revenue": 35327500288.0,
   "yahoo_price_to_sales": 19.356834,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:41+00:00"
+  "fetched_at": "2026-10-11T18:51:23+00:00"
  },
  "AMAT": {
   "name": "Applied Materials, Inc.",
@@ -491,7 +491,7 @@
   "total_revenue": 30837000192.0,
   "yahoo_price_to_sales": 13.048536,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:42+00:00"
+  "fetched_at": "2026-10-11T18:51:24+00:00"
  },
  "LRCX": {
   "name": "Lam Research Corporation",
@@ -529,7 +529,7 @@
   "total_revenue": 23232690176.0,
   "yahoo_price_to_sales": 17.174255,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:43+00:00"
+  "fetched_at": "2026-10-11T18:51:24+00:00"
  },
  "KLAC": {
   "name": "KLA Corporation",
@@ -567,7 +567,7 @@
   "total_revenue": 13579475968.0,
   "yahoo_price_to_sales": 18.794548,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:44+00:00"
+  "fetched_at": "2026-10-11T18:51:24+00:00"
  },
  "TER": {
   "name": "Teradyne, Inc.",
@@ -605,7 +605,7 @@
   "total_revenue": 4464031232.0,
   "yahoo_price_to_sales": 14.10279,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:45+00:00"
+  "fetched_at": "2026-10-11T18:51:24+00:00"
  },
  "GFS": {
   "name": "GlobalFoundries Inc.",
@@ -643,7 +643,7 @@
   "total_revenue": 6937999872.0,
   "yahoo_price_to_sales": 3.8757389,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:46+00:00"
+  "fetched_at": "2026-10-11T18:51:25+00:00"
  },
  "UMC": {
   "name": "United Microelectronics Corpora",
@@ -681,7 +681,7 @@
   "total_revenue": 250707148800.0,
   "yahoo_price_to_sales": 0.22967666,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:48+00:00"
+  "fetched_at": "2026-10-11T18:51:25+00:00"
  },
  "TXN": {
   "name": "Texas Instruments Incorporated",
@@ -719,7 +719,7 @@
   "total_revenue": 19452999680.0,
   "yahoo_price_to_sales": 13.320562,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:49+00:00"
+  "fetched_at": "2026-10-11T18:51:25+00:00"
  },
  "ADI": {
   "name": "Analog Devices, Inc.",
@@ -757,7 +757,7 @@
   "total_revenue": 13881744384.0,
   "yahoo_price_to_sales": 14.1787405,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:50+00:00"
+  "fetched_at": "2026-10-11T18:51:25+00:00"
  },
  "ON": {
   "name": "ON Semiconductor Corporation",
@@ -795,7 +795,7 @@
   "total_revenue": 6197799936.0,
   "yahoo_price_to_sales": 4.870095,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:51+00:00"
+  "fetched_at": "2026-10-11T18:51:26+00:00"
  },
  "MCHP": {
   "name": "Microchip Technology Incorporat",
@@ -833,7 +833,7 @@
   "total_revenue": 5122299904.0,
   "yahoo_price_to_sales": 8.008963,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:52+00:00"
+  "fetched_at": "2026-10-11T18:51:26+00:00"
  },
  "NXPI": {
   "name": "NXP Semiconductors N.V.",
@@ -871,7 +871,7 @@
   "total_revenue": 13185000448.0,
   "yahoo_price_to_sales": 4.351338,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:53+00:00"
+  "fetched_at": "2026-10-11T18:51:26+00:00"
  },
  "MPWR": {
   "name": "Monolithic Power Systems, Inc.",
@@ -909,7 +909,7 @@
   "total_revenue": 3273157888.0,
   "yahoo_price_to_sales": 20.813677,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:54+00:00"
+  "fetched_at": "2026-10-11T18:51:26+00:00"
  },
  "IONQ": {
   "name": "IonQ, Inc.",
@@ -947,7 +947,7 @@
   "total_revenue": 246474000.0,
   "yahoo_price_to_sales": 65.56822,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:55+00:00"
+  "fetched_at": "2026-10-11T18:51:27+00:00"
  },
  "RGTI": {
   "name": "Rigetti Computing, Inc.",
@@ -985,7 +985,7 @@
   "total_revenue": 13353000.0,
   "yahoo_price_to_sales": 350.69086,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:57+00:00"
+  "fetched_at": "2026-10-11T18:51:27+00:00"
  },
  "QBTS": {
   "name": "D-Wave Quantum Inc.",
@@ -1023,7 +1023,7 @@
   "total_revenue": 12425000.0,
   "yahoo_price_to_sales": 445.16376,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:58+00:00"
+  "fetched_at": "2026-10-11T18:51:27+00:00"
  },
  "QUBT": {
   "name": "Quantum Computing Inc.",
@@ -1061,7 +1061,7 @@
   "total_revenue": 9824000.0,
   "yahoo_price_to_sales": 171.41905,
   "error": null,
-  "fetched_at": "2026-10-11T18:26:59+00:00"
+  "fetched_at": "2026-10-11T18:51:28+00:00"
  },
  "IBM": {
   "name": "International Business Machines",
@@ -1099,7 +1099,7 @@
   "total_revenue": 69094998016.0,
   "yahoo_price_to_sales": 3.0969968,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:00+00:00"
+  "fetched_at": "2026-10-11T18:51:28+00:00"
  },
  "VST": {
   "name": "Vistra Corp.",
@@ -1137,7 +1137,7 @@
   "total_revenue": 19211999232.0,
   "yahoo_price_to_sales": 2.8210688,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:01+00:00"
+  "fetched_at": "2026-10-11T18:51:28+00:00"
  },
  "CEG": {
   "name": "Constellation Energy Corporatio",
@@ -1175,7 +1175,7 @@
   "total_revenue": 31270000640.0,
   "yahoo_price_to_sales": 3.3773074,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:02+00:00"
+  "fetched_at": "2026-10-11T18:51:28+00:00"
  },
  "OKLO": {
   "name": "Oklo Inc.",
@@ -1213,7 +1213,7 @@
   "total_revenue": 1210000.0,
   "yahoo_price_to_sales": 5334.556,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:03+00:00"
+  "fetched_at": "2026-10-11T18:51:28+00:00"
  },
  "SMR": {
   "name": "NuScale Power Corporation",
@@ -1251,7 +1251,7 @@
   "total_revenue": 10690000.0,
   "yahoo_price_to_sales": 276.40826,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:04+00:00"
+  "fetched_at": "2026-10-11T18:51:29+00:00"
  },
  "TLN": {
   "name": "Talen Energy Corporation",
@@ -1289,7 +1289,7 @@
   "total_revenue": 3740999936.0,
   "yahoo_price_to_sales": 4.7865176,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:05+00:00"
+  "fetched_at": "2026-10-11T18:51:29+00:00"
  },
  "GEV": {
   "name": "GE Vernova Inc.",
@@ -1327,7 +1327,7 @@
   "total_revenue": 41366999040.0,
   "yahoo_price_to_sales": 6.4687634,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:06+00:00"
+  "fetched_at": "2026-10-11T18:51:29+00:00"
  },
  "NPN.JO": {
   "name": "Naspers Ltd -N-",
@@ -1365,7 +1365,7 @@
   "total_revenue": 10848000000.0,
   "yahoo_price_to_sales": 49.770676,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:08+00:00"
+  "fetched_at": "2026-10-11T18:51:29+00:00"
  },
  "PRX.JO": {
   "name": "Prosus N.V.",
@@ -1403,7 +1403,7 @@
   "total_revenue": 9704999936.0,
   "yahoo_price_to_sales": 144.06807,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:09+00:00"
+  "fetched_at": "2026-10-11T18:51:30+00:00"
  },
  "SBK.JO": {
   "name": "Standard Bank Group Ltd",
@@ -1441,7 +1441,7 @@
   "total_revenue": 185692995584.0,
   "yahoo_price_to_sales": 2.5528445,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:10+00:00"
+  "fetched_at": "2026-10-11T18:51:30+00:00"
  },
  "FSR.JO": {
   "name": "Firstrand Ltd",
@@ -1479,7 +1479,7 @@
   "total_revenue": 132900003840.0,
   "yahoo_price_to_sales": 3.6507275,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:11+00:00"
+  "fetched_at": "2026-10-11T18:51:30+00:00"
  },
  "CPI.JO": {
   "name": "Capitec Limited",
@@ -1517,7 +1517,7 @@
   "total_revenue": 45069787136.0,
   "yahoo_price_to_sales": 10.782277,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:13+00:00"
+  "fetched_at": "2026-10-11T18:51:30+00:00"
  },
  "NED.JO": {
   "name": "Nedbank Group Ltd",
@@ -1555,7 +1555,7 @@
   "total_revenue": 61503000576.0,
   "yahoo_price_to_sales": 2.07915,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:14+00:00"
+  "fetched_at": "2026-10-11T18:51:31+00:00"
  },
  "ABG.JO": {
   "name": "Absa Group Limited",
@@ -1593,6 +1593,6 @@
   "total_revenue": 104573001728.0,
   "yahoo_price_to_sales": 1.6564599,
   "error": null,
-  "fetched_at": "2026-10-11T18:27:15+00:00"
+  "fetched_at": "2026-10-11T18:51:31+00:00"
  }
 }
