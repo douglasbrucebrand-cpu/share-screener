@@ -24,6 +24,7 @@ A high score is a *candidate worth your judgement*, not a buy signal. Not invest
 8. [Changing settings](#8-changing-settings)
 9. [What's in this repository](#9-whats-in-this-repository)
 10. [For developers: running it on a computer](#10-for-developers-running-it-on-a-computer)
+11. [Saving trades to a Google Sheet](#11-saving-trades-to-a-google-sheet)
 
 ---
 
@@ -225,17 +226,20 @@ For each position you see the return since you "bought", the benchmark's return 
 **Close position** sells at the latest close and moves it to the closed-trades list. Returns include
 dividends for both the share and the benchmark, so the comparison is fair.
 
-**Where trades are kept.** Trades are saved **only in the browser you used**. They are never sent to GitHub or
-anywhere else. That means:
+**Where trades are kept.** Trades are never sent to GitHub. There are two options:
 
-- Your Mac, your phone and the Google Sites embed each keep **their own separate list**.
-- Clearing your browser's history or website data deletes them.
-- **Export** saves your trades to a file. **Import** loads a file, replacing the list in that browser. Use these
-  to back up and to move trades between devices.
+- **Your Google Sheet (recommended).** Connect a sheet once on each device (see
+  [section 11](#11-saving-trades-to-a-google-sheet)), and your Mac, phone and Google Sites embed all show the
+  same trades. You can also sort, filter and chart them in Sheets.
+- **This browser only** (what happens if you don't connect a sheet). Each browser keeps its own separate list,
+  and clearing your browser's history or website data deletes it.
 
-If the page says *"This browser is blocking storage here"*, trades will be lost when you close the page. This
-can happen inside some embeds or private-browsing windows. Open the site directly instead, or export
-before leaving.
+Either way, **Export** saves your trades to a file and **Import** loads one back (replacing the current list,
+and the sheet's list too if one is connected). Use these for an extra backup.
+
+If the page says *"This browser is blocking storage here"*, the browser can't remember anything after you
+close the page. This can happen inside some embeds or private-browsing windows. With a sheet connected,
+your trades are safe; you'll just need to connect again next visit. Without one, export before leaving.
 
 ---
 
@@ -326,6 +330,7 @@ API keys, no holdings and no amounts, and paper-portfolio trades never leave you
 | `index.html`, `app.js` | The main screener page and the paper portfolio tab |
 | `ticker.html`, `ticker.js` | The detail page for one share |
 | `common.js`, `chart.js`, `portfolio.js`, `style.css` | Shared formatting, charts, the paper portfolio and styling |
+| `google-sheet/Code.gs` | The script you paste into your Google Sheet to store paper trades there (section 11) |
 | `run_screener.py` | The update script: fetches, scores and writes the data files |
 | `pipeline/fetch.py` | Talks to Yahoo Finance (prices, results, exchange rates) |
 | `pipeline/scoring.py` | The scoring rules (exact copy of the original) and the rule-by-rule breakdown |
@@ -349,12 +354,94 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/python run_screener.py                          # fetch, score, write data/
 .venv/bin/python run_screener.py --refresh-fundamentals   # also force fundamentals
-.venv/bin/python -m unittest -v tests.test_parity tests.test_changes tests.test_breakdown tests.test_watchlists
+.venv/bin/python -m unittest -v tests.test_parity tests.test_changes tests.test_breakdown tests.test_watchlists tests.test_sheet_script
 python3 -m http.server 8000                               # then open http://localhost:8000
 ```
 
 The parity test needs Node.js, because it runs the original JavaScript scoring (copied word for word into
-`tests/reference_scoring.js`) and checks that the Python gives exactly the same answers.
+`tests/reference_scoring.js`) and checks that the Python gives exactly the same answers. Node also runs the
+Google Sheet script tests, which use a stand-in for Google Sheets (`tests/sheet_mock.js`). To try the site
+against that stand-in, run `node tests/sheet_mock_server.js 8771 some-test-phrase` and connect the site to
+`http://localhost:8771/exec`.
 
 If you run the update locally, pull first (`git pull`) and push soon after. The automatic update also
 commits to `data/`, and two sets of data changes can clash.
+
+---
+
+## 11. Saving trades to a Google Sheet
+
+Optional, but recommended. Once connected, every **Simulate buy**, **Close** and **Delete** is saved to a
+Google Sheet in your own Google account, and every device you connect shows the same trades. The sheet is
+private to you; nothing about trades goes to GitHub.
+
+### One-time setup (about 10 minutes, on a computer)
+
+1. **Create the sheet.** Signed in to Google, go to https://sheets.new and name the new sheet
+   *Paper portfolio* (click "Untitled spreadsheet" at the top left).
+2. **Open the script editor.** In the sheet's menu choose **Extensions → Apps Script**. A new tab opens with a
+   code editor.
+3. **Paste the script.** Delete everything in the editor. Then open
+   https://github.com/douglasbrucebrand-cpu/share-screener/blob/main/google-sheet/Code.gs, click the
+   **Copy raw file** button (two overlapping squares, top right of the code), and paste it into the editor.
+4. **Choose your passphrase.** Near the top, find this line:
+   ```
+   const PASSPHRASE = 'CHANGE-ME';
+   ```
+   Replace `CHANGE-ME` with a phrase of your own, keeping the quote marks, e.g. `'blue kettle jazz 47'`.
+   **Don't use your Google password** or anything you use elsewhere. Then click **Save** (the disk icon), or
+   press Cmd + S.
+5. **Publish it as a web app.** Click the blue **Deploy** button (top right) → **New deployment**. Click the
+   gear next to *Select type* and choose **Web app**. Set:
+   - Description: `Screener`
+   - Execute as: **Me**
+   - Who has access: **Anyone**
+
+   Then click **Deploy**.
+6. **Give permission.** Google asks you to authorise the script: **Authorize access** → choose your account.
+   You will see *"Google hasn't verified this app"*. That's expected for a script you wrote yourself. Click
+   **Advanced** → **Go to … (unsafe)** → **Allow**. The script can only use this one spreadsheet.
+7. **Copy the web app address.** Google shows a *Web app* URL ending in `/exec`. Click **Copy**, then **Done**.
+   (You can test it by opening the address in a new tab: it should say *"This web app is working"*.)
+8. **Connect the site.** On the site, open the **Paper portfolio** tab → **Connect Google Sheet**. Paste the
+   address and type your passphrase. If you already have trades in that browser, leave **"Copy the … trades
+   into the sheet"** ticked so they move across. Click **Connect**.
+9. **Connect your other devices.** On your phone, and inside the Google Sites embed, do step 8 again with the
+   same address and passphrase, this time with "Copy" unticked unless that browser has trades of its own.
+
+Keep the address and passphrase somewhere safe (a password manager is ideal). Together they let someone read
+and change your paper trades, though nothing else in your Google account.
+
+### Everyday use
+
+At the top of the Paper portfolio tab you'll see one of:
+
+| Message | Meaning |
+|---|---|
+| ✓ Saved to Google Sheet "Paper portfolio" · 10:42 | Everything is saved. The time is the last save. |
+| Saving to Google Sheet… | A change is on its way. Takes a second or two. |
+| ⚠ 1 change not yet saved to the sheet. Will retry. | The sheet couldn't be reached (e.g. you're offline). The change is kept in the browser and sent next time you open the page or press **Sync now**. |
+| ⚠ Couldn't load from the sheet; showing this browser's copy. | The page shows the copy saved in the browser. Press **Sync now** to try again. |
+
+**Open sheet** opens the spreadsheet. The **Trades** tab has one row per trade. You can add your own columns to
+the right of the existing ones (notes, say); the script leaves them alone. Don't rename the column headings
+or change the *Trade ID* column, because that's how the site matches rows to trades.
+
+**Disconnect** stops this browser using the sheet. The sheet isn't changed, and the browser keeps its own copy.
+
+### If something goes wrong
+
+| Message | What to do |
+|---|---|
+| *Wrong passphrase.* | Retype it. It must match the `PASSPHRASE` line in the script exactly, including capitals and spaces. |
+| *The script still has the example passphrase…* | Do step 4, then publish the change (see *Changing the script or passphrase* below). |
+| *Couldn't reach the sheet. Check you're online, and that the web app's access is set to "Anyone".* | If you're online: in Apps Script, **Deploy → Manage deployments → pencil icon**, check *Who has access* is **Anyone**, then **Deploy**. |
+| *That isn't an Apps Script web app address.* | Paste the address from step 7 (it starts `https://script.google.com/macros/s/` and ends `/exec`), not the spreadsheet's own address. |
+
+### Changing the script or passphrase
+
+Edit the script and save. Then **Deploy → Manage deployments**, click the **pencil icon**, set *Version* to
+**New version**, and click **Deploy**. The web app address stays the same. If you changed the passphrase,
+press **Disconnect** then **Connect Google Sheet** on each device and enter the new one.
+
+To cut off access completely, use **Deploy → Manage deployments → Archive**.

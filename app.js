@@ -287,9 +287,9 @@ fetch('data/latest.json', {cache: 'no-cache'})
 // An older cached index.html may not load the shared scripts; fetch any that are missing.
 (function loadMissing() {
   const missing = [];
-  if (typeof fmtDate === 'undefined') missing.push('common.js?v=9');
-  if (typeof lineChart === 'undefined') missing.push('chart.js?v=9');
-  if (typeof Portfolio === 'undefined') missing.push('portfolio.js?v=9');
+  if (typeof fmtDate === 'undefined') missing.push('common.js?v=11');
+  if (typeof lineChart === 'undefined') missing.push('chart.js?v=11');
+  if (typeof Portfolio === 'undefined') missing.push('portfolio.js?v=11');
   (function next() {
     if (!missing.length) return boot();
     const sc = document.createElement('script');

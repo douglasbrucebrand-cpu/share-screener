@@ -1,15 +1,20 @@
-// Paper portfolio: simulated buys, stored ONLY in this browser (localStorage).
-// Nothing about trades is ever sent anywhere or written to the repo.
-// Needs common.js and chart.js.
+// Paper portfolio: simulated buys. Saved in this browser (localStorage) and, if you connect
+// one, in your own Google Sheet (see google-sheet/Code.gs). Nothing about trades is ever
+// written to the repo or sent anywhere else. Needs common.js and chart.js.
 //
 // Returns use the dividend-adjusted price history in data/prices/, for both the share
 // and its benchmark, so the two are compared like for like (total return).
 
 const Portfolio = (() => {
   const KEY = 'paper_portfolio_v1';
+  const SHEET_KEY = 'paper_sheet_v1';        // {url, pass, name, sheetUrl}: this browser only
+  const QUEUE_KEY = 'paper_sheet_queue_v1';  // changes not yet saved to the sheet
   const DEFAULT_AMOUNT = {ZAR: 10000, USD: 1000};
   let state = null;
   let storageOK = null;
+  let sheetCfg = null, queue = [];
+  let sync = {state: 'off', msg: '', at: null};
+  let inflight = null, autoTried = false;
 
   // ---------- storage ----------
   function probe() {
@@ -22,12 +27,152 @@ const Portfolio = (() => {
     let parsed = null;
     try { parsed = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { parsed = null; }
     state = parsed && Array.isArray(parsed.positions) ? parsed : {version: 1, positions: []};
+    sheetCfg = sheetCfg || lsGet(SHEET_KEY);
+    queue = lsGet(QUEUE_KEY) || queue;
+    if (sheetCfg && sync.state === 'off') sync = {state: queue.length ? 'pending' : 'ok', msg: '', at: null};
     return state;
   }
-  function save() {
+  function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  function lsSet(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function saveLocal() {
     try { localStorage.setItem(KEY, JSON.stringify(state)); storageOK = true; }
     catch (e) { storageOK = false; }
-    window.dispatchEvent(new Event('portfolio-change'));
+  }
+  const changed = () => window.dispatchEvent(new Event('portfolio-change'));
+  function save() { saveLocal(); changed(); }
+
+  // ---------- Google Sheet ----------
+  // Every change is queued, then sent to the sheet. If the sheet can't be reached the change
+  // stays queued (in this browser) and is sent next time. The sheet's list is the master copy.
+  const SHEET_URL = /^https:\/\/script\.google\.com\/(a\/macros\/[\w.-]+|macros)\/s\/[\w-]+\/exec$/;
+  const LOCAL_TEST_URL = /^http:\/\/(localhost|127\.0\.0\.1):\d+\/exec$/;   // for testing on a computer
+
+  async function api(cfg, body) {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 30000);
+    let res;
+    try {
+      // Sent as plain text, which Google's web apps accept from another site without extra checks.
+      res = await fetch(cfg.url, {method: 'POST', body: JSON.stringify(Object.assign({}, body, {pass: cfg.pass})), signal: ctl.signal});
+    } catch (e) {
+      throw new Error(e.name === 'AbortError' ? 'Google took too long to answer.' :
+        "Couldn't reach the sheet. Check you're online, and that the web app's access is set to \"Anyone\".");
+    } finally { clearTimeout(timer); }
+    let j;
+    try { j = JSON.parse(await res.text()); } catch (e) {
+      throw new Error("The sheet's web app didn't answer properly. Check it is deployed as a web app with access set to \"Anyone\".");
+    }
+    if (!j.ok) throw new Error(j.error || 'The sheet refused the request.');
+    return j;
+  }
+
+  function record(op) {
+    if (!sheetCfg) return;
+    queue.push(op);
+    lsSet(QUEUE_KEY, queue);
+    flush();
+  }
+
+  function flush() {
+    if (!sheetCfg) return Promise.resolve();
+    if (inflight) return inflight.then(() => (queue.length ? flush() : undefined));
+    sync = {state: 'syncing', msg: '', at: sync.at};
+    changed();
+    inflight = (async () => {
+      try {
+        for (;;) {
+          const ops = queue.slice();
+          const j = await api(sheetCfg, {action: 'apply', ops});
+          queue = queue.slice(ops.length);
+          lsSet(QUEUE_KEY, queue);
+          if (!queue.length) {            // nothing new arrived meanwhile: take the sheet's list
+            load().positions = (j.positions || []).map(clean).filter(Boolean);
+            saveLocal();
+            break;
+          }
+        }
+        sync = {state: 'ok', msg: '', at: new Date()};
+      } catch (e) {
+        sync = {state: queue.length ? 'pending' : 'error', msg: e.message, at: sync.at};
+      } finally {
+        inflight = null;
+        changed();
+      }
+    })();
+    return inflight;
+  }
+
+  // Load from the sheet once per page visit.
+  function autoSync() {
+    load();
+    if (sheetCfg && !autoTried) { autoTried = true; flush(); }
+  }
+  window.addEventListener('online', () => { if (sheetCfg && queue.length) flush(); });
+
+  async function connect() {
+    load();
+    const n = positions().length;
+    const dlg = await modal({
+      title: 'Connect Google Sheet', ok: 'Connect',
+      html: `<p>Paste the <b>web app address</b> from your sheet's Apps Script and the <b>passphrase</b> you put in the script.
+          <a href="https://github.com/douglasbrucebrand-cpu/share-screener#11-saving-trades-to-a-google-sheet" target="_blank" rel="noopener">Setup steps</a></p>
+        <label class="field">Web app address
+          <input class="txt" name="url" type="url" required autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec"></label>
+        <label class="field">Passphrase
+          <input class="txt" name="pass" type="password" required autocomplete="off"></label>
+        ${n ? `<label class="check"><input type="checkbox" name="copy" checked><span>Copy the ${n} trade${n > 1 ? 's' : ''} saved in this browser into the sheet.
+          <span class="dim">If unticked, this browser will show only the trades already in the sheet.</span></span></label>` : ''}
+        <p class="dim small">Both are saved only in this browser, never on GitHub. Use a passphrase you don't use anywhere else.</p>`,
+    });
+    if (!dlg) return;
+    const url = dlg.querySelector('[name=url]').value.trim(), pass = dlg.querySelector('[name=pass]').value;
+    const copy = !!(dlg.querySelector('[name=copy]') || {}).checked;
+    if (!SHEET_URL.test(url) && !LOCAL_TEST_URL.test(url)) {
+      return toast("That isn't an Apps Script web app address. It should start with https://script.google.com/macros/s/ and end in /exec.");
+    }
+    sync = {state: 'syncing', msg: 'Connecting…', at: null};
+    changed();
+    let j;
+    try { j = await api({url, pass}, {action: 'ping'}); }
+    catch (e) { sync = {state: 'off', msg: '', at: null}; changed(); return toast('Could not connect: ' + esc(e.message)); }
+    sheetCfg = {url, pass, name: j.sheet, sheetUrl: j.url};
+    lsSet(SHEET_KEY, sheetCfg);
+    queue = copy ? positions().map(p => ({op: 'upsert', position: p})) : [];
+    lsSet(QUEUE_KEY, queue);
+    autoTried = true;
+    await flush();
+    toast(sync.state === 'ok' ? `Connected to “${esc(j.sheet)}”. Trades are now saved there.` : `Connected, but saving failed: ${esc(sync.msg)}`);
+  }
+
+  async function disconnect() {
+    const waiting = queue.length;
+    const dlg = await modal({title: 'Disconnect Google Sheet', ok: 'Disconnect', danger: !!waiting,
+      html: `<p>Stop saving trades to “${esc(sheetCfg.name || 'your sheet')}” from this browser? The sheet itself is not changed,
+        and this browser keeps its own copy of the trades.</p>
+        ${waiting ? `<p class="warnline">${waiting} change${waiting > 1 ? 's have' : ' has'} not reached the sheet yet and will stay in this browser only.</p>` : ''}`});
+    if (!dlg) return;
+    sheetCfg = null; queue = [];
+    lsSet(SHEET_KEY, null); lsSet(QUEUE_KEY, null);
+    sync = {state: 'off', msg: '', at: null};
+    changed();
+  }
+
+  function sheetBar() {
+    if (!sheetCfg) {
+      return `<button class="ghost" id="pf-connect"${sync.state === 'syncing' ? ' disabled' : ''}>${sync.state === 'syncing' ? 'Connecting…' : 'Connect Google Sheet'}</button>
+        <span class="dim small">Trades are saved in this browser only.</span>`;
+    }
+    const name = esc(sheetCfg.name || 'your sheet');
+    const when = sync.at ? ' &middot; ' + sync.at.toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'}) : '';
+    const text = {
+      syncing: `<span class="sync">Saving to Google Sheet “${name}”…</span>`,
+      ok: `<span class="sync ok">✓ Saved to Google Sheet “${name}”${when}</span>`,
+      pending: `<span class="sync warn">⚠ ${queue.length} change${queue.length === 1 ? '' : 's'} not yet saved to the sheet. Will retry. <span class="dim">${esc(sync.msg)}</span></span>`,
+      error: `<span class="sync warn">⚠ Couldn't load from the sheet; showing this browser's copy. <span class="dim">${esc(sync.msg)}</span></span>`,
+    }[sync.state] || `<span class="sync">Google Sheet “${name}”</span>`;
+    return `${text}
+      ${sheetCfg.sheetUrl && /^https:\/\/docs\.google\.com\//.test(sheetCfg.sheetUrl) ? `<a class="small" href="${esc(sheetCfg.sheetUrl)}" target="_blank" rel="noopener">Open sheet</a>` : ''}
+      <button class="ghost subtle" id="pf-sync"${sync.state === 'syncing' ? ' disabled' : ''}>Sync now</button>
+      <button class="ghost subtle" id="pf-disconnect">Disconnect</button>`;
   }
   const positions = () => load().positions;
   const openFor = sym => positions().filter(p => p.symbol === sym && p.status === 'open');
@@ -100,7 +245,10 @@ const Portfolio = (() => {
       <div class="dlg-f"><button value="cancel" class="ghost" formnovalidate>Cancel</button>
         <button value="ok" class="${danger ? 'danger' : ''}">${ok}</button></div></form>`;
     return new Promise(resolve => {
-      dlg.onclose = () => resolve(dlg.returnValue === 'ok' ? dlg : null);
+      // Act on the button press itself (the dialog's own "close" event can be delayed by the browser).
+      dlg.querySelector('form').onsubmit = e => resolve(e.submitter && e.submitter.value === 'ok' ? dlg : null);
+      dlg.oncancel = () => resolve(null);          // Esc key
+      dlg.onclose = () => resolve(null);           // anything else; ignored if already answered
       dlg.returnValue = '';
       dlg.showModal();
       if (onOpen) onOpen(dlg);
@@ -151,7 +299,9 @@ const Portfolio = (() => {
       created_at: new Date().toISOString(), status: 'open',
     });
     save();
-    toast(`Recorded a simulated buy of ${esc(row.symbol)} (${amt(amount, c)}). <a href="index.html#portfolio">Open paper portfolio</a>`);
+    record({op: 'upsert', position: state.positions[state.positions.length - 1]});
+    toast(`Recorded a simulated buy of ${esc(row.symbol)} (${amt(amount, c)})${sheetCfg ? ', saving to your Google Sheet' : ''}.
+      <a href="index.html#portfolio">Open paper portfolio</a>`);
   }
 
   async function close(id, data) {
@@ -171,6 +321,7 @@ const Portfolio = (() => {
     Object.assign(p, {status: 'closed', close_date: s.end, close_price: s.lastPrice ?? null,
       return_pct: s.ret, bench_return_pct: s.bret, composite_at_close: s.compNow, closed_at: new Date().toISOString()});
     save();
+    record({op: 'upsert', position: p});
   }
 
   async function remove(id) {
@@ -181,6 +332,7 @@ const Portfolio = (() => {
     if (!dlg) return;
     state.positions = state.positions.filter(x => x.id !== id);
     save();
+    record({op: 'delete', id});
   }
 
   function exportFile() {
@@ -226,9 +378,10 @@ const Portfolio = (() => {
       if (!good.length) return toast('No valid trades found in that file.');
       const dlg = await modal({title: 'Import paper portfolio', ok: 'Replace with imported trades', danger: true,
         html: `<p>The file has <b>${good.length}</b> valid trade${good.length > 1 ? 's' : ''}${good.length < list.length ? ` (${list.length - good.length} skipped as invalid)` : ''}.</p>
-          <p>This replaces the <b>${positions().length}</b> trade${positions().length === 1 ? '' : 's'} currently in this browser.</p>`});
+          <p>This replaces the <b>${positions().length}</b> trade${positions().length === 1 ? '' : 's'} currently in this browser${sheetCfg ? ' <b>and in your Google Sheet</b>' : ''}.</p>`});
       if (!dlg) return;
       load(); state.positions = good; save();
+      record({op: 'replace', positions: good});
       toast(`Imported ${good.length} trade${good.length > 1 ? 's' : ''}.`);
     });
   }
@@ -292,6 +445,7 @@ const Portfolio = (() => {
   let lastData = null, lastHost = null;
   async function render(host, data) {
     lastData = data; lastHost = host;
+    autoSync();
     const all = positions();
     const needed = [...new Set(all.flatMap(p => [p.symbol, p.benchmark]).filter(Boolean))];
     const files = Object.fromEntries(await Promise.all(needed.map(async s => [s, await prices(s)])));
@@ -302,12 +456,17 @@ const Portfolio = (() => {
     const closed = all.filter(p => p.status === 'closed');
 
     host.innerHTML = `
-      <div class="note">Practice trades only. Use <b>Simulate buy</b> on any share to add one. Trades are saved
-        <b>only in this browser</b> &mdash; not on GitHub and not shared. A different browser, device or a Google Sites
-        embed keeps its own separate list, so use <b>Export</b> to back up or move your trades.
+      <div class="note">Practice trades only. Use <b>Simulate buy</b> on any share to add one.
+        ${sheetCfg ? `Trades are saved to <b>your Google Sheet</b>, with a copy in this browser for when the sheet can't be reached.
+          Connect the same sheet on your other devices to see the same trades.` :
+          `Trades are saved <b>only in this browser</b> &mdash; not on GitHub and not shared. A different browser, device or a Google Sites
+          embed keeps its own separate list. <b>Connect Google Sheet</b> to keep one list everywhere, or use <b>Export</b> to back up.`}
         Returns include dividends, for both the share and its benchmark (SPY for US shares, STX40 for JSE shares).</div>
-      ${storageOK === false ? `<div class="stale"><b>This browser is blocking storage here</b>, so trades will be lost when the page closes.
-        Open the site directly (not inside an embed) or export before leaving.</div>` : ''}
+      ${storageOK === false ? (sheetCfg ?
+        `<div class="stale"><b>This browser is blocking storage here</b>, so you'll need to connect the sheet again next visit. Your trades are safe in the sheet.</div>` :
+        `<div class="stale"><b>This browser is blocking storage here</b>, so trades will be lost when the page closes.
+        Open the site directly (not inside an embed), connect a Google Sheet, or export before leaving.</div>`) : ''}
+      <div class="pf-toolbar pf-sheet">${sheetBar()}</div>
       <div class="pf-toolbar">
         <button class="ghost" id="pf-export"${all.length ? '' : ' disabled'}>Export</button>
         <button class="ghost" id="pf-import">Import</button>
@@ -342,9 +501,12 @@ const Portfolio = (() => {
 
   // one set of listeners for the portfolio tab's buttons
   document.addEventListener('click', e => {
-    const t = e.target.closest('#pf-export, #pf-import, [data-close], [data-del]');
+    const t = e.target.closest('#pf-export, #pf-import, #pf-connect, #pf-sync, #pf-disconnect, [data-close], [data-del]');
     if (!t || !lastHost || !lastHost.contains(t)) return;
-    if (t.id === 'pf-export') exportFile();
+    if (t.id === 'pf-connect') connect();
+    else if (t.id === 'pf-sync') flush();
+    else if (t.id === 'pf-disconnect') disconnect();
+    else if (t.id === 'pf-export') exportFile();
     else if (t.id === 'pf-import') lastHost.querySelector('#pf-file').click();
     else if (t.dataset.close) close(t.dataset.close, lastData);
     else if (t.dataset.del) remove(t.dataset.del);
@@ -356,7 +518,10 @@ const Portfolio = (() => {
     if (lastHost && lastHost.isConnected && !lastHost.hidden) render(lastHost, lastData);
   });
   // keep tabs in sync if trades change in another window
-  window.addEventListener('storage', e => { if (e.key === KEY) { state = null; window.dispatchEvent(new Event('portfolio-change')); } });
+  window.addEventListener('storage', e => {
+    if ([KEY, SHEET_KEY, QUEUE_KEY].includes(e.key)) { state = null; sheetCfg = null; window.dispatchEvent(new Event('portfolio-change')); }
+  });
 
-  return {buy, openFor, render, storageBlocked: () => (load(), storageOK === false)};
+  return {buy, openFor, render, autoSync, syncState: () => (load(), {connected: !!sheetCfg, state: sync.state, waiting: queue.length}),
+    storageBlocked: () => (load(), storageOK === false)};
 })();

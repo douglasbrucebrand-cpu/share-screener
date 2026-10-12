@@ -194,6 +194,7 @@ function render(data) {
   });
   $('simbuy').addEventListener('click', () => Portfolio.buy(ROW, LATEST));
   holdingLine();
+  Portfolio.autoSync();
   drawPrice();
   drawHistory();
 }
@@ -201,10 +202,12 @@ function render(data) {
 function holdingLine() {
   const el = $('holding');
   if (!el) return;
-  const open = Portfolio.openFor(SYMBOL);
-  el.innerHTML = open.length ? `You hold ${open.length} simulated position${open.length > 1 ? 's' : ''} in ${esc(SYMBOL)}
+  const open = Portfolio.openFor(SYMBOL), st = Portfolio.syncState();
+  const where = st.connected ? 'Saved to your Google Sheet.' : 'Saved in this browser only.';
+  const warn = st.connected && st.waiting ? ` <span class="warnline">${st.waiting} change${st.waiting > 1 ? 's' : ''} not yet saved to the sheet.</span>` : '';
+  el.innerHTML = (open.length ? `You hold ${open.length} simulated position${open.length > 1 ? 's' : ''} in ${esc(SYMBOL)}
     (first bought ${fmtDate(open.map(p => p.buy_date).sort()[0])}). <a href="index.html#portfolio">See paper portfolio</a>` :
-    'Records a practice buy at the latest close. Saved in this browser only.';
+    `Records a practice buy at the latest close. ${where}`) + warn;
 }
 window.addEventListener('portfolio-change', holdingLine);
 
