@@ -6,7 +6,8 @@
  *
  * Setup (full steps in the README, section "Saving trades to a Google Sheet"):
  *   1. In your Google Sheet: Extensions > Apps Script. Delete any sample code and paste this file.
- *   2. Change PASSPHRASE below to a phrase of your own (NOT your Google password). Save.
+ *   2. Set your passphrase (NOT your Google password): either as a PASSPHRASE script property
+ *      (Project Settings > Script properties), or by changing the PASSPHRASE line below. Save.
  *   3. Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Deploy.
  *   4. Copy the Web app URL (it ends in /exec) and paste it, with your passphrase,
  *      into "Connect Google Sheet" on the Paper portfolio tab of the site.
@@ -15,43 +16,75 @@
  * Anyone without the passphrase is refused. You can add your own columns to the right
  * of the existing ones (notes, say): the script leaves them alone.
  *
+ * It also stores analyst calls on a "Calls" tab (README section 13), the same way.
+ *
  * Optional: editing the watchlist from the website (README section 12). The script then also
  * saves watchlists.json on GitHub, using a GitHub key kept in this project's Script Properties
  * as GITHUB_TOKEN. The key is never written in this code, on the website or on GitHub.
+ *
+ * Tip: put your passphrase in Script Properties as PASSPHRASE too. Then updating this code is
+ * just paste and deploy, with no line to edit.
  */
 
-const PASSPHRASE = 'CHANGE-ME';   // <-- choose your own, then type the same phrase on the site
-const SHEET_NAME = 'Trades';
+const PASSPHRASE = 'CHANGE-ME';   // <-- or leave this and set a PASSPHRASE script property (README section 11)
 const GITHUB_REPO = 'douglasbrucebrand-cpu/share-screener';
 const GITHUB_FILE = 'watchlists.json';
 const GITHUB_BRANCH = 'main';
 
-// [field the site uses, column heading in the sheet, kind of value]
-const COLUMNS = [
-  ['id', 'Trade ID', 'text'],
-  ['status', 'Status', 'text'],
-  ['symbol', 'Ticker', 'text'],
-  ['name', 'Company', 'text'],
-  ['currency', 'Currency', 'text'],
-  ['buy_date', 'Bought on', 'text'],
-  ['buy_price', 'Buy price', 'money'],
-  ['amount', 'Amount', 'money'],
-  ['units', 'Units', 'units'],
-  ['composite_at_buy', 'Composite at buy', 'whole'],
-  ['mom_at_buy', 'Momentum at buy', 'whole'],
-  ['fund_at_buy', 'Fundamentals at buy', 'whole'],
-  ['benchmark', 'Benchmark', 'text'],
-  ['bench_buy_price', 'Benchmark price at buy', 'money'],
-  ['close_date', 'Sold on', 'text'],
-  ['close_price', 'Sell price', 'money'],
-  ['return_pct', 'Return', 'pct'],
-  ['bench_return_pct', 'Benchmark return', 'pct'],
-  ['composite_at_close', 'Composite at sell', 'whole'],
-  ['created_at', 'Recorded at', 'text'],
-  ['closed_at', 'Closed at', 'text'],
-];
+// What each tab of the sheet holds: [field the site uses, column heading, kind of value, max length].
+const TABLES = {
+  trades: {
+    sheet: 'Trades', listKey: 'positions', required: ['id', 'symbol', 'buy_date'],
+    columns: [
+      ['id', 'Trade ID', 'text'],
+      ['status', 'Status', 'text'],
+      ['symbol', 'Ticker', 'text'],
+      ['name', 'Company', 'text'],
+      ['currency', 'Currency', 'text'],
+      ['buy_date', 'Bought on', 'text'],
+      ['buy_price', 'Buy price', 'money'],
+      ['amount', 'Amount', 'money'],
+      ['units', 'Units', 'units'],
+      ['composite_at_buy', 'Composite at buy', 'whole'],
+      ['mom_at_buy', 'Momentum at buy', 'whole'],
+      ['fund_at_buy', 'Fundamentals at buy', 'whole'],
+      ['benchmark', 'Benchmark', 'text'],
+      ['bench_buy_price', 'Benchmark price at buy', 'money'],
+      ['close_date', 'Sold on', 'text'],
+      ['close_price', 'Sell price', 'money'],
+      ['return_pct', 'Return', 'pct'],
+      ['bench_return_pct', 'Benchmark return', 'pct'],
+      ['composite_at_close', 'Composite at sell', 'whole'],
+      ['created_at', 'Recorded at', 'text'],
+      ['closed_at', 'Closed at', 'text'],
+    ],
+    tidy: q => { q.status = q.status === 'closed' ? 'closed' : 'open'; },
+  },
+  calls: {
+    sheet: 'Calls', listKey: 'calls', required: ['id', 'who', 'symbol', 'call_date', 'direction'],
+    columns: [
+      ['id', 'Call ID', 'text'],
+      ['call_date', 'Call date', 'text'],
+      ['who', 'Who', 'text', 80],
+      ['firm', 'Firm or outlet', 'text', 80],
+      ['symbol', 'Ticker', 'text'],
+      ['name', 'Company', 'text'],
+      ['direction', 'Direction', 'text'],
+      ['after_close', 'After the close', 'yesno'],
+      ['target', 'Target price', 'money'],
+      ['source', 'Source or note', 'text', 500],
+      ['entry_date', 'Entry date', 'text'],
+      ['entry_price', 'Entry price', 'money'],
+      ['entry_status', 'Entry status', 'text'],
+      ['history_starts', 'Price history starts', 'text'],
+      ['created_at', 'Recorded at', 'text'],
+      ['updated_at', 'Updated at', 'text'],
+    ],
+    tidy: q => { if (['bullish', 'bearish', 'neutral'].indexOf(q.direction) < 0) q.direction = ''; },
+  },
+};
 // Text columns are formatted as plain text first, so Sheets never turns "2026-10-09" into a date.
-const FORMATS = {text: '@', money: '#,##0.00', units: '0.0000', whole: '0', pct: '0.0%'};
+const FORMATS = {text: '@', yesno: '@', money: '#,##0.00', units: '0.0000', whole: '0', pct: '0.0%'};
 const MAX_OPS = 500;
 
 function doGet() {
@@ -59,13 +92,19 @@ function doGet() {
     note: 'This web app is working. Connect it from the Paper portfolio tab of the site.'});
 }
 
+/** The passphrase: from Script Properties if set there (so updating the code never resets it), else from the code. */
+function passphrase() {
+  return PropertiesService.getScriptProperties().getProperty('PASSPHRASE') || PASSPHRASE;
+}
+
 function doPost(e) {
   let req;
   try { req = JSON.parse(e.postData.contents); } catch (err) { return reply({ok: false, error: 'Bad request.'}); }
-  if (!PASSPHRASE || PASSPHRASE === 'CHANGE-ME') {
-    return reply({ok: false, error: 'The script still has the example passphrase. Change PASSPHRASE in the script, save, and deploy a new version.'});
+  const pass = passphrase();
+  if (!pass || pass === 'CHANGE-ME') {
+    return reply({ok: false, error: 'The script still has the example passphrase. Set a PASSPHRASE script property (or change it in the code), save, and deploy a new version.'});
   }
-  if (!req || req.pass !== PASSPHRASE) {
+  if (!req || req.pass !== pass) {
     Utilities.sleep(1500);   // slows down anyone guessing
     return reply({ok: false, error: 'Wrong passphrase.'});
   }
@@ -77,20 +116,23 @@ function doPost(e) {
   lock.waitLock(20000);      // one change at a time
   try {
     if (req.action === 'watchlist_edit') return reply(editWatchlist(req));
-    const ctx = open();
+    if (req.action === 'track') return reply(trackSymbols(req.symbols));
     if (req.action === 'ping') {
       const ss = SpreadsheetApp.getActive();
-      return reply({ok: true, sheet: ss.getName(), url: ss.getUrl(), count: readAll(ctx).length,
+      return reply({ok: true, sheet: ss.getName(), url: ss.getUrl(), count: readAll(open('trades')).length,
         watchlistEditing: !!PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN')});
     }
-    if (req.action === 'apply') {
+    // 'apply' = paper trades (the original action), 'calls_apply' = analyst calls
+    const table = req.action === 'apply' ? 'trades' : req.action === 'calls_apply' ? 'calls' : null;
+    if (table) {
+      const ctx = open(table);
       const ops = Array.isArray(req.ops) ? req.ops.slice(0, MAX_OPS) : [];
       for (const op of ops) {
-        if (op.op === 'upsert') upsert(ctx, op.position);
+        if (op.op === 'upsert') upsert(ctx, op.item || op.position);
         else if (op.op === 'delete') remove(ctx, op.id);
-        else if (op.op === 'replace') replaceAll(ctx, op.positions);
+        else if (op.op === 'replace') replaceAll(ctx, op.items || op.positions);
       }
-      return reply({ok: true, positions: readAll(ctx)});
+      return reply({ok: true, [TABLES[table].listKey]: readAll(ctx)});
     }
     return reply({ok: false, error: 'Unknown action.'});
   } catch (err) {
@@ -106,14 +148,15 @@ function reply(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-/** The Trades tab, creating it and any missing headings. Columns are found by heading, not position. */
-function open() {
+/** A tab of the sheet, creating it and any missing headings. Columns are found by heading, not position. */
+function open(table) {
+  const t = TABLES[table];
   const ss = SpreadsheetApp.getActive();
-  const sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  const sh = ss.getSheetByName(t.sheet) || ss.insertSheet(t.sheet);
   const lastCol = sh.getLastColumn();
   const head = lastCol ? sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String) : [];
   let changed = false;
-  for (const [, title] of COLUMNS) {
+  for (const [, title] of t.columns) {
     if (head.indexOf(title) < 0) { head.push(title); changed = true; }
   }
   if (changed) {
@@ -121,22 +164,23 @@ function open() {
     sh.setFrozenRows(1);
   }
   const col = {};
-  for (const [key, title] of COLUMNS) col[key] = head.indexOf(title);   // 0-based
-  return {sh, col, width: head.length, tz: ss.getSpreadsheetTimeZone()};
+  for (const [key, title] of t.columns) col[key] = head.indexOf(title);   // 0-based
+  return {t, sh, col, width: head.length, tz: ss.getSpreadsheetTimeZone()};
 }
 
 /** Only known fields, of the right kind, ever reach the sheet. */
-function clean(p) {
+function clean(t, p) {
   if (!p || typeof p !== 'object') return null;
   const q = {};
-  for (const [key, , kind] of COLUMNS) {
+  for (const [key, , kind, max] of t.columns) {
     const v = p[key];
+    if (kind === 'yesno') { q[key] = v === true || v === 'yes' ? 'yes' : ''; continue; }
     if (v === null || v === undefined || v === '') { q[key] = ''; continue; }
-    if (kind === 'text') q[key] = String(v).slice(0, 200);
+    if (kind === 'text') q[key] = String(v).slice(0, max || 200);
     else { const n = Number(v); q[key] = isFinite(n) ? n : ''; }
   }
-  if (!q.id || !q.symbol || !q.buy_date) return null;
-  q.status = q.status === 'closed' ? 'closed' : 'open';
+  t.tidy(q);
+  for (const k of t.required) if (!q[k]) return null;
   return q;
 }
 
@@ -149,14 +193,14 @@ function rowOf(ctx, id) {
 }
 
 function upsert(ctx, p) {
-  const q = clean(p);
+  const q = clean(ctx.t, p);
   if (!q) return;
   let r = rowOf(ctx, q.id);
   if (r < 0) r = ctx.sh.getLastRow() + 1;
   const range = ctx.sh.getRange(r, 1, 1, ctx.width);
   const values = range.getValues()[0];          // keeps any columns you added yourself
   const formats = range.getNumberFormats()[0];
-  for (const [key, , kind] of COLUMNS) {
+  for (const [key, , kind] of ctx.t.columns) {
     values[ctx.col[key]] = q[key];
     formats[ctx.col[key]] = FORMATS[kind];
   }
@@ -182,15 +226,16 @@ function readAll(ctx) {
   const out = [];
   for (const row of rows) {
     const p = {};
-    for (const [key, , kind] of COLUMNS) {
+    for (const [key, , kind] of ctx.t.columns) {
       let v = row[ctx.col[key]];
       if (v instanceof Date) v = Utilities.formatDate(v, ctx.tz, key.endsWith('_at') ? "yyyy-MM-dd'T'HH:mm:ss" : 'yyyy-MM-dd');
+      if (kind === 'yesno') { p[key] = v === 'yes' || v === true; continue; }
       if (v === '' || v === null || v === undefined) v = null;
       else if (kind !== 'text') { v = Number(v); if (!isFinite(v)) v = null; }
       else v = String(v);
       p[key] = v;
     }
-    if (p.id && p.symbol && p.buy_date) out.push(p);
+    if (ctx.t.required.every(k => p[k])) out.push(p);
   }
   return out;
 }
@@ -276,6 +321,34 @@ function editWatchlist(req) {
   return {ok: false, error: 'The watchlist was changed somewhere else at the same moment. Please try again.'};
 }
 
+/**
+ * Make sure the daily update fetches prices for these tickers (e.g. a share someone made a call on
+ * that isn't on a watchlist). Adds them to "tracked" in watchlists.json: tickers only, nothing else.
+ */
+function trackSymbols(list) {
+  const token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+  if (!token) {
+    return {ok: false, error: 'The script has no GitHub key yet, so prices for new shares can\'t be added (README section 12).'};
+  }
+  const wanted = (Array.isArray(list) ? list : []).map(symbolOf).filter(Boolean).slice(0, 50);
+  if (!wanted.length) return {ok: false, error: 'No valid tickers to track.'};
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const file = githubGet(token);
+    if (!file.ok) return file;
+    const wl = file.json;
+    const known = new Set([].concat(...(wl.tabs || []).map(t => [].concat(...t.groups.map(g => g.tickers))),
+      Object.values(wl.benchmarks || {}), wl.tracked || []));
+    const add = wanted.filter((s, i) => !known.has(s) && wanted.indexOf(s) === i);
+    if (!add.length) return {ok: true, unchanged: true, tracked: wl.tracked || []};
+    wl.tracked = (wl.tracked || []).concat(add);
+    const put = githubPut(token, formatWatchlists(wl), file.sha, `Track prices: ${add.join(', ')} (from the website)`);
+    if (put.conflict) continue;
+    if (!put.ok) return put;
+    return {ok: true, added: add, tracked: wl.tracked};
+  }
+  return {ok: false, error: 'The watchlist was changed somewhere else at the same moment. Please try again.'};
+}
+
 function githubHeaders(token) {
   return {Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'};
 }
@@ -314,8 +387,8 @@ function githubPut(token, text, sha, message) {
 /** Writes watchlists.json in the same easy-to-read layout as the original: one group per line. */
 function formatWatchlists(wl) {
   const q = JSON.stringify;
-  const flat = v => (v && typeof v === 'object' && !Array.isArray(v)
-    ? '{' + Object.keys(v).map(k => q(k) + ': ' + q(v[k])).join(', ') + '}' : q(v));
+  const flat = v => (Array.isArray(v) ? '[' + v.map(x => q(x)).join(', ') + ']'
+    : v && typeof v === 'object' ? '{' + Object.keys(v).map(k => q(k) + ': ' + q(v[k])).join(', ') + '}' : q(v));
   const out = ['{', '  "tabs": ['];
   wl.tabs.forEach((t, i) => {
     out.push('    {', `      "id": ${q(t.id)},`, `      "name": ${q(t.name)},`, '      "groups": [');

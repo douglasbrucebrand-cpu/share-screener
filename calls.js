@@ -1,7 +1,8 @@
 // Analyst calls: tag a prediction someone made ("Simon Brown, SBK.JO, bullish, 13/10/2026")
 // and record the share's price at the time, so it can be judged later.
-// Phase 8, step 1: calls are saved in this browser. (Step 2 adds your Google Sheet.)
-// Needs common.js, portfolio.js (messages, sheet search) and watchlist.js (share search).
+// Calls are saved in your Google Sheet ("Calls" tab) when it's connected, with a copy in this browser
+// for when the sheet can't be reached; otherwise in this browser only. Never in the public repo.
+// Needs common.js, portfolio.js (sheet connection, messages) and watchlist.js (share search).
 
 const Calls = (() => {
   const KEY = 'calls_v1';
@@ -97,21 +98,113 @@ const Calls = (() => {
   // Nothing below runs outside a browser (the tests only use the helpers above).
   if (typeof document === 'undefined') return {resolveEntry, isFinal, entryRule, validate, sourceLink};
 
-  // ---------- storage (this browser) ----------
-  let state = null;
+  // ---------- storage: this browser, plus your Google Sheet when connected ----------
+  // Same pattern as paper trades: every change is queued and sent to the sheet; if the sheet can't
+  // be reached the change waits here and is sent next time. The sheet's list is the master copy.
+  const QUEUE_KEY = 'calls_queue_v1';           // changes not yet saved to the sheet
+  const SYNCED_KEY = 'calls_sheet_synced_v1';   // this browser has sent its own calls to the sheet once
+  const TRACK_KEY = 'calls_track_requested_v1'; // {symbol: time} prices already asked for
+  let state = null, queue = [], inflight = null, autoTried = false;
+  let sync = {state: 'off', msg: '', at: null};
+  let trackNote = null;
+
+  function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  function lsSet(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function load() {
     if (state) return state;
-    try { state = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { state = null; }
+    state = lsGet(KEY);
     if (!state || !Array.isArray(state.calls)) state = {version: 1, calls: []};
+    queue = lsGet(QUEUE_KEY) || [];
+    if (queue.length && !Portfolio.connected()) { queue = []; lsSet(QUEUE_KEY, null); }   // sheet was disconnected
     return state;
   }
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* storage blocked: kept for this visit */ }
-    window.dispatchEvent(new Event('calls-change'));
-  }
+  const saveLocal = () => lsSet(KEY, state);
+  const changed = () => window.dispatchEvent(new Event('calls-change'));
+  function save() { saveLocal(); changed(); }
   const all = () => load().calls;
   const forSymbol = sym => all().filter(c => c.symbol === sym);
-  window.addEventListener('storage', e => { if (e.key === KEY) { state = null; window.dispatchEvent(new Event('calls-change')); } });
+  window.addEventListener('storage', e => {
+    if ([KEY, QUEUE_KEY].includes(e.key)) { state = null; changed(); }
+  });
+
+  function record(op) {
+    if (!Portfolio.connected()) return;
+    queue.push(op);
+    lsSet(QUEUE_KEY, queue);
+    flush();
+  }
+
+  function flush() {
+    load();
+    if (!Portfolio.connected()) return Promise.resolve();
+    if (inflight) return inflight.then(() => (queue.length ? flush() : undefined));
+    // The first time this browser talks to the sheet about calls, send the calls it already has.
+    if (!lsGet(SYNCED_KEY)) {
+      const queued = new Set(queue.filter(o => o.op === 'upsert').map(o => o.item.id));
+      queue = all().filter(c => !queued.has(c.id)).map(c => ({op: 'upsert', item: c})).concat(queue);
+      lsSet(QUEUE_KEY, queue);
+    }
+    sync = {state: 'syncing', msg: '', at: sync.at};
+    changed();
+    inflight = (async () => {
+      try {
+        for (;;) {
+          const ops = queue.slice();
+          const j = await Portfolio.sheetCall({action: 'calls_apply', ops});
+          queue = queue.slice(ops.length);
+          lsSet(QUEUE_KEY, queue);
+          lsSet(SYNCED_KEY, true);
+          if (!queue.length) {                 // nothing new arrived meanwhile: take the sheet's list
+            load().calls = (j.calls || []).filter(c => c && c.id && c.symbol && c.call_date);
+            saveLocal();
+            break;
+          }
+        }
+        sync = {state: 'ok', msg: '', at: new Date()};
+      } catch (e) {
+        sync = {state: queue.length ? 'pending' : 'error', msg: e.message, at: sync.at};
+      } finally {
+        inflight = null;
+        changed();
+      }
+    })();
+    return inflight;
+  }
+
+  // Load from the sheet once per page visit.
+  function autoSync() {
+    load();
+    if (Portfolio.connected() && !autoTried) { autoTried = true; flush(); }
+  }
+  window.addEventListener('online', () => { if (queue.length) flush(); });
+
+  /**
+   * Shares with a call but no price history on the site get added to "tracked" in watchlists.json
+   * (tickers only), so the daily update starts fetching their prices. Asked at most every 30 minutes.
+   */
+  let trackTried = false, tracking = null;
+  async function ensureTracked() {
+    if (!latest || trackTried || tracking || !Portfolio.connected()) return;
+    const known = new Set([...Object.keys(latest.tickers || {}), ...(latest.tracked || []), ...Object.values(latest.benchmarks || {})]);
+    const asked = lsGet(TRACK_KEY) || {};
+    const need = [...new Set(all().map(c => c.symbol))].filter(sym => !known.has(sym) && !(Date.now() - (asked[sym] || 0) < 30 * 60e3));
+    if (!need.length) return;
+    trackTried = true;
+    tracking = Portfolio.sheetCall({action: 'track', symbols: need});   // one request at a time
+    try {
+      const r = await tracking;
+      need.forEach(sym => { asked[sym] = Date.now(); });
+      lsSet(TRACK_KEY, asked);
+      if (r.added && r.added.length) {
+        trackNote = {ok: true, text: `Fetching prices for ${r.added.join(', ')}. Entry prices fill in after the next update (about 2 minutes).`};
+      }
+    } catch (e) {
+      trackNote = {ok: false, text: `Prices for ${need.join(', ')} can't be fetched yet: ${e.message}`};
+    } finally {
+      tracking = null;
+    }
+    changed();
+  }
 
   // ---------- prices ----------
   const priceCache = {};
@@ -125,16 +218,19 @@ const Calls = (() => {
 
   /** Fill in entry prices that couldn't be worked out before (e.g. the next close hadn't happened). */
   async function resolvePending() {
-    let changed = false;
+    const updated = [];
     for (const c of all().filter(x => !x.entry_date)) {
       const r = resolveEntry(c.call_date, c.after_close, await prices(c.symbol), c.symbol);
-      if (r.date) { Object.assign(c, {entry_date: r.date, entry_price: r.price, entry_status: null}); changed = true; }
+      if (r.date) { Object.assign(c, {entry_date: r.date, entry_price: r.price, entry_status: null}); updated.push(c); }
       else {
         const status = r.tooOld ? 'too_old' : 'pending';
-        if (c.entry_status !== status) { c.entry_status = status; c.history_starts = r.first || null; changed = true; }
+        if (c.entry_status !== status) { c.entry_status = status; c.history_starts = r.first || null; updated.push(c); }
       }
     }
-    if (changed) save();
+    if (updated.length) {
+      save();
+      updated.forEach(c => record({op: 'upsert', item: c}));
+    }
   }
 
   function entryText(c) {
@@ -143,7 +239,8 @@ const Calls = (() => {
       return `${money(c.entry_price, currencyOf(c.symbol))} <span class="dim small">${later ? 'on ' + fmtDate(c.entry_date) : ''}</span>`;
     }
     if (c.entry_status === 'too_old') return `<span class="warnline small">older than the price history (from ${fmtDate(c.history_starts)})</span>`;
-    return `<span class="dim small" title="${info(c.symbol) ? "Waiting for that day's closing price" : 'This share is not tracked yet: prices start once it is'}">pending</span>`;
+    const tracked = info(c.symbol) || (latest && (latest.tracked || []).includes(c.symbol));
+    return `<span class="dim small" title="${tracked ? "Waiting for that day's final closing price" : 'Prices for this share start once it is tracked (needs the GitHub key, README section 12)'}">pending</span>`;
   }
   const dirBadge = d => { const x = DIRECTIONS[d] || DIRECTIONS.neutral; return `<span class="callbadge ${x.cls}">${x.icon} ${x.label}</span>`; };
   function sourceHtml(src) {
@@ -196,8 +293,8 @@ const Calls = (() => {
           <span class="amt"><span class="call-ccy"></span><input name="target" type="text" inputmode="decimal" autocomplete="off" value="${c.target != null ? esc(c.target) : ''}"></span></label>
         <label class="field">Source link or note <span class="dim">(optional)</span>
           <input class="txt" name="source" maxlength="500" autocomplete="off" value="${esc(c.source || '')}" placeholder="e.g. https://www.moneyweb.co.za/… or 'Radio interview'"></label>
-        <p class="dim small">Saved in this browser for now. The entry price is the close on the call date, or the next
-          trading day's close if the market was shut or the call came after the close.</p>
+        <p class="dim small">The entry price is the close on the call date, or the next trading day's close if the
+          market was shut or the call came after the close.</p>
         <p class="warnline small call-error" hidden></p>
       </div>
       <div class="dlg-f"><button value="cancel" class="ghost">Cancel</button><button value="ok">${existing ? 'Save changes' : 'Tag call'}</button></div></form>`);
@@ -235,16 +332,21 @@ const Calls = (() => {
       const priceMatters = !existing || existing.symbol !== call.symbol || existing.call_date !== call.call_date ||
         !!existing.after_close !== call.after_close;
       const now = new Date().toISOString();
+      let saved;
       if (existing) {
-        Object.assign(existing, call, {updated_at: now});
+        saved = Object.assign(existing, call, {updated_at: now});
         if (priceMatters) Object.assign(existing, {entry_date: null, entry_price: null, entry_status: null});
       } else {
-        state.calls.push(Object.assign({id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6)}, call,
-          {entry_date: null, entry_price: null, entry_status: null, created_at: now, updated_at: now}));
+        saved = Object.assign({id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6)}, call,
+          {entry_date: null, entry_price: null, entry_status: null, created_at: now, updated_at: now});
+        state.calls.push(saved);
       }
       save();
+      record({op: 'upsert', item: saved});
       d.close();
       resolvePending();
+      trackTried = false;
+      ensureTracked();
       Portfolio.toast(existing ? 'Call updated.' : `Tagged: ${esc(call.who)}, ${esc(call.symbol)}, ${DIRECTIONS[call.direction].label.toLowerCase()}, ${fmtDate(call.call_date)}.`);
     });
   }
@@ -258,7 +360,7 @@ const Calls = (() => {
       <div class="dlg-f"><button value="cancel" class="ghost">Cancel</button><button value="ok" class="danger">Delete</button></div></form>`);
     d.querySelector('form').addEventListener('submit', e => {
       e.preventDefault();
-      if (e.submitter && e.submitter.value === 'ok') { state.calls = state.calls.filter(x => x.id !== id); save(); }
+      if (e.submitter && e.submitter.value === 'ok') { state.calls = state.calls.filter(x => x.id !== id); save(); record({op: 'delete', id}); }
       d.close();
     });
   }
@@ -288,23 +390,45 @@ const Calls = (() => {
       <tbody>${rowsHtml(list, opts)}</tbody></table></div>`;
   }
 
+  function sheetBar() {
+    const st = Portfolio.syncState();
+    if (!st.connected) {
+      return `<span class="dim small">Calls are saved <b>in this browser only</b>. Connect your Google Sheet on the
+        <a href="index.html#portfolio">Paper portfolio</a> tab to keep them there, on every device.</span>`;
+    }
+    const name = esc(st.name || 'your sheet');
+    const when = sync.at ? ' &middot; ' + sync.at.toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'}) : '';
+    const text = {
+      syncing: `<span class="sync">Saving to Google Sheet “${name}”…</span>`,
+      ok: `<span class="sync ok">✓ Calls saved to Google Sheet “${name}”${when}</span>`,
+      pending: `<span class="sync warn">⚠ ${queue.length} change${queue.length === 1 ? '' : 's'} not yet saved to the sheet. Will retry. <span class="dim">${esc(sync.msg)}</span></span>`,
+      error: `<span class="sync warn">⚠ Couldn't load calls from the sheet; showing this browser's copy. <span class="dim">${esc(sync.msg)}</span></span>`,
+    }[sync.state] || `<span class="sync">Google Sheet “${name}”</span>`;
+    return `${text} <button class="ghost subtle" id="calls-sync"${sync.state === 'syncing' ? ' disabled' : ''}>Sync now</button>`;
+  }
+
   /** The Calls tab on the main page. */
   function renderCallsTab(host, data) {
     latest = data;
+    autoSync();
     const list = all();
     host.innerHTML = `
       <div class="note">Tag a prediction someone makes about a share: who, which share, bullish or bearish, and when.
-        The share's closing price that day is recorded so the call can be judged later. Calls are saved
-        <b>in this browser</b> for now.</div>
+        The share's closing price that day is recorded so the call can be judged later. Calls are private:
+        they're kept in your Google Sheet (or this browser), never on the public website or GitHub.</div>
+      <div class="pf-toolbar pf-sheet">${sheetBar()}</div>
+      ${trackNote ? `<p class="small ${trackNote.ok ? 'dim' : 'warnline'}">${esc(trackNote.text)}</p>` : ''}
       <div class="pf-toolbar"><button class="btn" id="calls-tag">Tag a call</button>
         <span class="dim small">${list.length} call${list.length === 1 ? '' : 's'}</span></div>
       ${list.length ? tableHtml(list) : '<p class="dim">No calls yet. Press <b>Tag a call</b>, or use the button on any share\'s page.</p>'}`;
     resolvePending();
+    ensureTracked();
   }
 
   /** The calls section on a share's detail page. */
   function renderForSymbol(host, data, symbol) {
     latest = data;
+    autoSync();
     const list = forSymbol(symbol);
     host.innerHTML = list.length ? `<h3>Calls on ${esc(symbol)}</h3>${tableHtml(list, {noTicker: true})}` : '';
     host.hidden = !list.length;
@@ -313,9 +437,10 @@ const Calls = (() => {
 
   // ---------- clicks ----------
   document.addEventListener('click', e => {
-    const t = e.target.closest('#calls-tag, [data-call-edit], [data-call-del]');
+    const t = e.target.closest('#calls-tag, #calls-sync, [data-call-edit], [data-call-del]');
     if (!t) return;
     if (t.id === 'calls-tag') openTag(null, null);
+    else if (t.id === 'calls-sync') flush();
     else if (t.dataset.callEdit) openTag(null, all().find(x => x.id === t.dataset.callEdit));
     else if (t.dataset.callDel) remove(t.dataset.callDel);
   });

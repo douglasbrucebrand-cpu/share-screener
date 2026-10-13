@@ -233,4 +233,74 @@ test('search finds shares and funds by name, showing the exchange, and skips fut
   assert.strictEqual(s.call({pass: 'wrong', action: 'search', q: 'MTN'}).ok, false);
 });
 
+// ---------- analyst calls ----------
+const call = (id, extra = {}) => Object.assign({
+  id, who: 'Simon Brown', firm: 'Moneyweb', symbol: 'SBK.JO', name: 'Standard Bank Group Ltd', call_date: '2026-10-09',
+  direction: 'bullish', after_close: false, target: 330, source: 'https://www.moneyweb.co.za/x',
+  entry_date: '2026-10-09', entry_price: 292.1, created_at: '2026-10-13T10:00:00.000Z', updated_at: '2026-10-13T10:00:00.000Z',
+}, extra);
+const callsApply = (s, ops) => s.call({pass: PASS, action: 'calls_apply', ops});
+
+test('calls are stored on their own Calls tab and round-trip exactly', () => {
+  const s = load(CODE, PASS);
+  s.call({pass: PASS, action: 'apply', ops: [{op: 'upsert', position: trade('t1')}]});
+  const r = callsApply(s, [{op: 'upsert', item: call('c1', {after_close: true, source: 'x'.repeat(450)})}]);
+  assert.ok(r.ok, r.error);
+  const c = r.calls[0];
+  assert.deepStrictEqual([c.who, c.symbol, c.call_date, c.direction, c.after_close, c.target, c.entry_price, c.source.length],
+    ['Simon Brown', 'SBK.JO', '2026-10-09', 'bullish', true, 330, 292.1, 450]);
+  assert.ok(s.sheets.Calls && s.sheets.Trades, 'separate tabs');
+  assert.strictEqual(s.sheets.Calls.getRange(1, 3).getValues()[0][0], 'Who');
+  assert.strictEqual(typeof s.sheets.Calls.getRange(2, 2).getValues()[0][0], 'string', 'call date kept as text');
+  assert.strictEqual(r.calls.length, 1, 'trades do not leak into calls');
+  assert.strictEqual(s.call({pass: PASS, action: 'apply', ops: []}).positions.length, 1, 'calls do not leak into trades');
+});
+
+test('calls can be edited and deleted; a pending entry is stored as blank', () => {
+  const s = load(CODE, PASS);
+  callsApply(s, [{op: 'upsert', item: call('c1')}, {op: 'upsert', item: call('c2', {symbol: 'MTN.JO', entry_date: null, entry_price: null, entry_status: 'pending'})}]);
+  let r = callsApply(s, [{op: 'upsert', item: call('c1', {direction: 'bearish'})}, {op: 'delete', id: 'c2'}]);
+  assert.deepStrictEqual(r.calls.map(c => `${c.id}:${c.direction}`), ['c1:bearish']);
+  r = callsApply(s, [{op: 'upsert', item: call('c3', {entry_date: null, entry_price: null, entry_status: 'pending'})}]);
+  const c3 = r.calls.find(c => c.id === 'c3');
+  assert.deepStrictEqual([c3.entry_date, c3.entry_price, c3.entry_status], [null, null, 'pending']);
+});
+
+test('a call without who, share, date or a proper direction is ignored', () => {
+  const s = load(CODE, PASS);
+  const r = callsApply(s, [{op: 'upsert', item: call('c1', {who: ''})}, {op: 'upsert', item: call('c2', {direction: 'sideways'})},
+    {op: 'upsert', item: call('c3', {extra: '=HYPERLINK()'})}]);
+  assert.deepStrictEqual(r.calls.map(c => c.id), ['c3']);
+  assert.strictEqual('extra' in r.calls[0], false);
+});
+
+test('tracking adds only new tickers to "tracked", nothing else', () => {
+  const s = withGH();
+  const r = s.call({pass: PASS, action: 'track', symbols: ['mtn.jo', 'NPN.JO', 'SPY', 'MTN.JO', 'bad symbol!']});
+  assert.ok(r.ok, r.error);
+  assert.deepStrictEqual(r.added, ['MTN.JO']);   // NPN.JO is on a watchlist, SPY is a benchmark
+  const wl = JSON.parse(s.gh.text);
+  assert.deepStrictEqual(wl.tracked, ['MTN.JO']);
+  assert.deepStrictEqual(s.gh.puts, ['Track prices: MTN.JO (from the website)']);
+  assert.match(s.gh.text, /  "tracked": \["MTN\.JO"\]\n}\n$/);
+  // asking again changes nothing
+  assert.strictEqual(s.call({pass: PASS, action: 'track', symbols: ['MTN.JO']}).unchanged, true);
+  assert.strictEqual(s.gh.puts.length, 1);
+  if (process.env.WL_OUT_TRACKED) fs.writeFileSync(process.env.WL_OUT_TRACKED, s.gh.text);
+});
+
+test('tracking without a GitHub key explains what is missing', () => {
+  assert.match(load(CODE, PASS, {watchlist: REAL}).call({pass: PASS, action: 'track', symbols: ['MTN.JO']}).error, /no GitHub key/);
+});
+
+test('the passphrase can live in Script Properties, so updating the code never resets it', () => {
+  const s = load(CODE, null, {props: {PASSPHRASE: 'from-properties'}});   // code still says CHANGE-ME
+  assert.strictEqual(s.call({pass: 'from-properties', action: 'ping'}).ok, true);
+  assert.strictEqual(s.call({pass: 'CHANGE-ME', action: 'ping'}).ok, false);
+  // and the property wins over a phrase typed in the code
+  const s2 = load(CODE, 'in-code', {props: {PASSPHRASE: 'from-properties'}});
+  assert.strictEqual(s2.call({pass: 'in-code', action: 'ping'}).ok, false);
+  assert.strictEqual(s2.call({pass: 'from-properties', action: 'ping'}).ok, true);
+});
+
 console.log(`\n${passed} passed`);

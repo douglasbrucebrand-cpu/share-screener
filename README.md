@@ -85,6 +85,9 @@ All the tickers live in one file, **`watchlists.json`**.
   lowercase letters and dashes, no spaces), a `name` (what you see), and one or more **groups**.
 - A **group** is one table on the page, with a heading (`name`) and a list of `tickers`.
 - **benchmarks** are what the paper portfolio compares against. You won't normally need to change these.
+- **tracked** (if present) lists shares that have an analyst call but aren't on a watchlist, so the daily
+  update fetches their prices. The site adds to it automatically when you tag a call; it holds tickers only.
+  Tracked shares don't appear on the tabs. Deleting one just stops its prices updating.
 
 ### Examples
 
@@ -335,7 +338,8 @@ API keys, no holdings and no amounts, and paper-portfolio trades never leave you
 | `ticker.html`, `ticker.js` | The detail page for one share |
 | `common.js`, `chart.js`, `portfolio.js`, `style.css` | Shared formatting, charts, the paper portfolio and styling |
 | `watchlist.js` | The **Edit watchlist** button: add and remove shares from the site (section 12) |
-| `google-sheet/Code.gs` | The script you paste into your Google Sheet: stores paper trades (section 11) and saves watchlist edits to GitHub (section 12) |
+| `calls.js` | The **Calls** tab and **Tag a call**: analyst calls, kept in your Google Sheet (or browser), never in this repository |
+| `google-sheet/Code.gs` | The script you paste into your Google Sheet: stores paper trades (section 11) and analyst calls, and saves watchlist edits to GitHub (section 12) |
 | `run_screener.py` | The update script: fetches, scores and writes the data files |
 | `pipeline/fetch.py` | Talks to Yahoo Finance (prices, results, exchange rates) |
 | `pipeline/scoring.py` | The scoring rules (exact copy of the original) and the rule-by-rule breakdown |
@@ -359,7 +363,7 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/python run_screener.py                          # fetch, score, write data/
 .venv/bin/python run_screener.py --refresh-fundamentals   # also force fundamentals
-.venv/bin/python -m unittest -v tests.test_parity tests.test_changes tests.test_breakdown tests.test_watchlists tests.test_sheet_script
+.venv/bin/python -m unittest -v tests.test_parity tests.test_changes tests.test_breakdown tests.test_watchlists tests.test_sheet_script tests.test_calls_js tests.test_market_hours tests.test_tracked
 python3 -m http.server 8000                               # then open http://localhost:8000
 ```
 
@@ -389,13 +393,12 @@ private to you; nothing about trades goes to GitHub.
 3. **Paste the script.** Delete everything in the editor. Then open
    https://github.com/douglasbrucebrand-cpu/share-screener/blob/main/google-sheet/Code.gs, click the
    **Copy raw file** button (two overlapping squares, top right of the code), and paste it into the editor.
-4. **Choose your passphrase.** Near the top, find this line:
-   ```
-   const PASSPHRASE = 'CHANGE-ME';
-   ```
-   Replace `CHANGE-ME` with a phrase of your own, keeping the quote marks, e.g. `'blue kettle jazz 47'`.
-   **Don't use your Google password** or anything you use elsewhere. Then click **Save** (the disk icon), or
-   press Cmd + S.
+4. **Choose your passphrase** and store it in the script's private settings. Click **Save** (the disk icon)
+   first, then in the left-hand bar click **Project Settings** (the gear icon) → **Script Properties** →
+   **Add script property**. Property: `PASSPHRASE`, Value: a phrase of your own, e.g. `blue kettle jazz 47`.
+   **Don't use your Google password** or anything you use elsewhere. Click **Save script properties**.
+   *(Older instructions had you type it into the `const PASSPHRASE = 'CHANGE-ME';` line instead. That still
+   works, but with the property you never have to edit the code when it's updated.)*
 5. **Publish it as a web app.** Click the blue **Deploy** button (top right) → **New deployment**. Click the
    gear next to *Select type* and choose **Web app**. Set:
    - Description: `Screener`
@@ -443,11 +446,25 @@ or change the *Trade ID* column, because that's how the site matches rows to tra
 | *Couldn't reach the sheet. Check you're online, and that the web app's access is set to "Anyone".* | If you're online: in Apps Script, **Deploy → Manage deployments → pencil icon**, check *Who has access* is **Anyone**, then **Deploy**. |
 | *That isn't an Apps Script web app address.* | Paste the address from step 7 (it starts `https://script.google.com/macros/s/` and ends `/exec`), not the spreadsheet's own address. |
 
-### Changing the script or passphrase
+### Updating the script to a new version
 
-Edit the script and save. Then **Deploy → Manage deployments**, click the **pencil icon**, set *Version* to
-**New version**, and click **Deploy**. The web app address stays the same. If you changed the passphrase,
-press **Disconnect** then **Connect Google Sheet** on each device and enter the new one.
+When the site gains features that need the script (like analyst calls), update it like this:
+
+1. **If your passphrase is typed into the code** (the `const PASSPHRASE = '…'` line rather than a script
+   property), move it to a property first: **Project Settings → Script Properties → Add script property**,
+   `PASSPHRASE` = your phrase, **Save script properties**. Your passphrase doesn't change.
+2. Click **Editor** (`< >`), replace all the code with the latest
+   [Code.gs](https://github.com/douglasbrucebrand-cpu/share-screener/blob/main/google-sheet/Code.gs)
+   (Copy raw file), and **Save**. Leave its `PASSPHRASE` line as `CHANGE-ME`; the property is used instead.
+3. **Deploy → Manage deployments → pencil icon → Version: New version → Deploy.** If Google asks for
+   permission again, approve it as in step 6.
+
+The web app address stays the same, so nothing on the site needs reconnecting.
+
+### Changing the passphrase
+
+Change the `PASSPHRASE` script property, then press **Disconnect** and **Connect Google Sheet** on each
+device and enter the new one. (No new deployment is needed for a property change.)
 
 To cut off access completely, use **Deploy → Manage deployments → Archive**.
 

@@ -530,6 +530,6 @@ const Portfolio = (() => {
   }
 
   return {buy, openFor, render, autoSync, toast, sheetCall, connected: () => (load(), !!sheetCfg),
-    syncState: () => (load(), {connected: !!sheetCfg, state: sync.state, waiting: queue.length}),
+    syncState: () => (load(), {connected: !!sheetCfg, state: sync.state, waiting: queue.length, name: sheetCfg && sheetCfg.name}),
     storageBlocked: () => (load(), storageOK === false)};
 })();

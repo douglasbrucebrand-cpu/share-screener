@@ -93,7 +93,8 @@ function makeEnv(opts = {}) {
   const env = {
     SpreadsheetApp: {getActive: () => ss},
     LockService: {getScriptLock: () => ({waitLock() {}, releaseLock() {}})},
-    PropertiesService: {getScriptProperties: () => ({getProperty: k => (k === 'GITHUB_TOKEN' ? opts.token || null : null)})},
+    PropertiesService: {getScriptProperties: () => ({getProperty: k =>
+      (k === 'GITHUB_TOKEN' ? opts.token || null : (opts.props || {})[k] || null)})},
     UrlFetchApp: {fetch: services.fetch},
     Utilities: {
       sleep() {},
@@ -114,7 +115,8 @@ function makeEnv(opts = {}) {
 }
 
 // Load Code.gs, optionally swapping in a passphrase.
-// opts: {token: pretend GitHub key in Script Properties, watchlist: starting watchlists.json text}
+// opts: {token: pretend GitHub key in Script Properties, props: other Script Properties,
+//        watchlist: starting watchlists.json text}
 // Returns {call(body), get(), sheets, gh, yahoo, format(obj)}.
 function load(codePath, passphrase, opts = {}) {
   let src = fs.readFileSync(codePath, 'utf8');

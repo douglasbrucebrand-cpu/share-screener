@@ -3,6 +3,7 @@
 // Watchlist edits go to a pretend copy of watchlists.json (see GET /__watchlist), never to GitHub.
 // Then connect the site to http://localhost:<port>/exec with that passphrase.
 // GET /__offline/on and /__offline/off make it refuse requests, to test "can't reach the sheet".
+// GET /__rows (Trades tab), /__rows?tab=Calls and /__watchlist show what has been saved.
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
@@ -20,9 +21,9 @@ http.createServer((req, res) => {
   };
   if (req.url === '/__offline/on') { offline = true; return send(200, {offline}); }
   if (req.url === '/__offline/off') { offline = false; return send(200, {offline}); }
-  if (req.url === '/__watchlist') { res.writeHead(200, {'Content-Type': 'text/plain'}); return res.end(app.gh.text); }
-  if (req.url === '/__rows') {
-    const sh = app.sheets.Trades;
+  if (req.url === '/__watchlist') return send(200, app.gh.text);
+  if (req.url.startsWith('/__rows')) {
+    const sh = app.sheets[req.url.includes('tab=Calls') ? 'Calls' : 'Trades'];
     return send(200, sh ? sh.getRange(1, 1, Math.max(sh.getLastRow(), 1), sh.getLastColumn() || 1).getValues() : []);
   }
   if (!req.url.startsWith('/exec')) return send(404, {ok: false});

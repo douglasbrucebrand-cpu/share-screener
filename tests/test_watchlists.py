@@ -54,6 +54,12 @@ class WatchlistTest(unittest.TestCase):
         t = json.loads(json.dumps(GOOD)); t["tabs"][0]["groups"][0]["tickers"] = [123]
         self.assertProblem(json.dumps(t), "in quotes")
 
+    def test_tracked_list(self):
+        t = json.loads(json.dumps(GOOD)); t["tracked"] = ["MTN.JO", "MSFT"]
+        self.assertEqual(check(json.dumps(t))["tracked"], ["MTN.JO", "MSFT"])
+        t["tracked"] = "MTN.JO"
+        self.assertProblem(json.dumps(t), '"tracked" should be a list')
+
     def test_group_without_tickers(self):
         t = json.loads(json.dumps(GOOD)); del t["tabs"][0]["groups"][0]["tickers"]
         self.assertProblem(json.dumps(t), '"tickers" list')
