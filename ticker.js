@@ -157,6 +157,7 @@ function render(data) {
     </section>
     <div class="sim-row">
       <button class="btn" id="simbuy"${r.price == null ? ' disabled' : ''}>Simulate buy</button>
+      <button class="ghost" id="tagcall">Tag a call</button>
       <span class="small dim" id="holding"></span>
     </div>
 
@@ -178,6 +179,8 @@ function render(data) {
       <section class="panel">${valuationHtml(r)}</section>
     </div>
 
+    <section class="panel" id="callsbox" hidden></section>
+
     <section class="panel">
       <h3>Score history</h3>
       <div id="histlegend"></div>
@@ -193,6 +196,8 @@ function render(data) {
     drawPrice();
   });
   $('simbuy').addEventListener('click', () => Portfolio.buy(ROW, LATEST));
+  $('tagcall').addEventListener('click', () => Calls.openTag({symbol: SYMBOL, name: ROW.name}, null));
+  Calls.renderForSymbol($('callsbox'), LATEST, SYMBOL);
   holdingLine();
   Portfolio.autoSync();
   drawPrice();
@@ -210,6 +215,7 @@ function holdingLine() {
     `Records a practice buy at the latest close. ${where}`) + warn;
 }
 window.addEventListener('portfolio-change', holdingLine);
+window.addEventListener('calls-change', () => { if ($('callsbox')) Calls.renderForSymbol($('callsbox'), LATEST, SYMBOL); });
 
 function renderUpdated(d) {
   const age = (Date.now() - new Date(d.generated_at).getTime()) / 864e5;

@@ -133,6 +133,29 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .wl-result input{margin-top:3px}
 select.txt{appearance:auto}
 
+/* ---------- analyst calls ---------- */
+.callbadge{font-size:12px;font-weight:600;white-space:nowrap}
+.callbadge.up{color:var(--good)} .callbadge.down{color:var(--bad)} .callbadge.flat{color:var(--muted)}
+.call-row{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+.call-row .field{flex:0 0 auto}
+.call-row .check{margin:0 0 10px;flex:1 1 200px}
+.call-chosen{display:flex;gap:8px;align-items:center;margin-top:4px;font-size:14px;color:var(--text)}
+fieldset.call-dir{border:none;padding:0;margin:8px 0;display:flex;gap:6px;flex-wrap:wrap}
+fieldset.call-dir legend{padding:0;margin-bottom:4px}
+.seg-opt{flex:1 1 90px}
+.seg-opt input{position:absolute;opacity:0;pointer-events:none}
+.seg-opt span{display:block;text-align:center;padding:8px 10px;border:1px solid var(--line);border-radius:7px;cursor:pointer;color:var(--text);font-weight:600}
+.seg-opt input:checked+span{background:var(--chip)}
+.seg-opt.up input:checked+span{border-color:var(--good);color:var(--good)}
+.seg-opt.down input:checked+span{border-color:var(--bad);color:var(--bad)}
+.seg-opt.flat input:checked+span{border-color:var(--muted)}
+.seg-opt input:focus-visible+span{outline:2px solid var(--accent);outline-offset:1px}
+.calls-table td{vertical-align:top}
+.calls-table th,.calls-table td{text-align:left}
+.call-src{white-space:normal;max-width:200px}
+.call-actions{white-space:nowrap}
+input[type=date].txt{color-scheme:dark}
+
 /* ---------- paper portfolio ---------- */
 .pf-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .pf-sheet{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-bottom:10px}

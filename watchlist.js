@@ -99,45 +99,41 @@ const Watchlist = (() => {
       <div class="dlg-f"><button value="cancel" class="ghost">Close</button></div></form>`);
   }
 
-  function openAdd(group) {
-    if (!Portfolio.connected()) return needConnection();
-    const tab = currentTab();
-    const opts = tab.groups.map(g => `<option${g.name === group ? ' selected' : ''}>${esc(g.name)}</option>`).join('');
-    const inTab = sym => tab.groups.filter(g => g.tickers.includes(sym)).map(g => g.name);
-    const d = dialog(`<form method="dialog" novalidate><div class="dlg-h">Add a share to “${esc(tab.name)}”</div>
-      <div class="dlg-b">
-        <label class="field">Company name or Yahoo symbol
-          <span class="wl-searchrow"><input class="txt" name="q" autocomplete="off" spellcheck="false" placeholder="e.g. MTN, Capitec, Microsoft">
-          <button type="button" class="ghost" id="wl-search">Search</button></span></label>
-        <div class="wl-results" id="wl-results" role="radiogroup" aria-label="Search results"></div>
-        <label class="field">Add to group
-          <select class="txt" name="group">${opts}<option value="__new">+ New group…</option></select></label>
-        <input class="txt" name="newGroup" placeholder="Name of the new group" maxlength="60" hidden>
-        <p class="warnline small wl-error" hidden></p>
-      </div>
-      <div class="dlg-f"><button value="cancel" class="ghost">Cancel</button><button value="ok" disabled>Add share</button></div></form>`);
-    const q = d.querySelector('[name=q]'), results = d.querySelector('#wl-results');
-    const sel = d.querySelector('[name=group]'), newGroup = d.querySelector('[name=newGroup]');
-    const ok = d.querySelector('[value=ok]');
+  // A search box for picking a share by company name or symbol, drawn into `root`.
+  // Used by the watchlist editor and by calls.js. opts.note(symbol) adds a warning to a result;
+  // opts.onChange(selected) runs whenever the choice changes.
+  function symbolPicker(root, opts = {}) {
+    root.innerHTML = `<label class="field">Company name or Yahoo symbol
+        <span class="wl-searchrow"><input class="txt" name="q" autocomplete="off" spellcheck="false" placeholder="e.g. MTN, Capitec, Microsoft">
+        <button type="button" class="ghost" data-sp-search>Search</button></span></label>
+      <div class="wl-results" role="radiogroup" aria-label="Search results"></div>`;
+    const q = root.querySelector('[name=q]'), results = root.querySelector('.wl-results');
     const looksLikeSymbol = s => /^\^?[A-Z0-9][A-Z0-9.\-=]{0,14}$/i.test(s.trim());
-
-    function pick() { ok.disabled = busy || !d.querySelector('[name=pick]:checked'); }
+    let rows = [];
+    const selected = () => {
+      const v = root.querySelector('[name=pick]:checked')?.value;
+      return v ? rows.find(r => r.symbol === v) || null : null;
+    };
+    const changed = () => opts.onChange && opts.onChange(selected());
     function list(items, note) {
       const typed = q.value.trim().toUpperCase();
-      const rows = items.map(x => ({...x, symbol: x.symbol.toUpperCase()}));
+      rows = items.map(x => ({...x, symbol: x.symbol.toUpperCase()}));
       if (looksLikeSymbol(typed) && !rows.some(x => x.symbol === typed)) rows.push({symbol: typed, name: 'Use exactly as typed', exchange: '', typed: true});
       // Only pre-select when there is exactly one choice: with several (MTN vs MTN.JO) you must pick.
       results.innerHTML = (note ? `<p class="dim small">${esc(note)}</p>` : '') + (rows.length ? rows.map(x => {
-        const already = inTab(x.symbol);
-        return `<label class="wl-result"><input type="radio" name="pick" value="${esc(x.symbol)}"${rows.length === 1 && !already.length ? ' checked' : ''}>
+        const warn = opts.note ? opts.note(x.symbol) : '';
+        return `<label class="wl-result"><input type="radio" name="pick" value="${esc(x.symbol)}"${rows.length === 1 && !warn ? ' checked' : ''}>
           <span><b>${esc(x.symbol)}</b> <span class="dim">${esc(x.name)}${x.exchange ? ' · ' + esc(x.exchange) : ''}</span>
-          ${already.length ? `<span class="warnline small"> already in ${esc(already.join(', '))}</span>` : ''}</span></label>`;
+          ${warn ? `<span class="warnline small"> ${esc(warn)}</span>` : ''}</span></label>`;
       }).join('') : '<p class="dim small">Nothing found. Try another name, or type the exact Yahoo symbol.</p>');
-      pick();
+      changed();
     }
     async function search() {
       const term = q.value.trim();
       if (!term) return;
+      if (!Portfolio.connected()) {
+        return list([], 'Searching by company name needs your Google Sheet connected. You can still type the exact Yahoo symbol, e.g. SBK.JO.');
+      }
       results.innerHTML = '<p class="dim small">Searching…</p>';
       try {
         const r = await Portfolio.sheetCall({action: 'search', q: term});
@@ -146,16 +142,40 @@ const Watchlist = (() => {
         list([], e.message);
       }
     }
-    d.querySelector('#wl-search').addEventListener('click', search);
+    root.querySelector('[data-sp-search]').addEventListener('click', search);
     q.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); search(); } });
-    results.addEventListener('change', pick);
+    results.addEventListener('change', changed);
+    return {selected, focus: () => q.focus()};
+  }
+
+  function openAdd(group) {
+    if (!Portfolio.connected()) return needConnection();
+    const tab = currentTab();
+    const opts = tab.groups.map(g => `<option${g.name === group ? ' selected' : ''}>${esc(g.name)}</option>`).join('');
+    const inTab = sym => tab.groups.filter(g => g.tickers.includes(sym)).map(g => g.name);
+    const d = dialog(`<form method="dialog" novalidate><div class="dlg-h">Add a share to “${esc(tab.name)}”</div>
+      <div class="dlg-b">
+        <div class="sp"></div>
+        <label class="field">Add to group
+          <select class="txt" name="group">${opts}<option value="__new">+ New group…</option></select></label>
+        <input class="txt" name="newGroup" placeholder="Name of the new group" maxlength="60" hidden>
+        <p class="warnline small wl-error" hidden></p>
+      </div>
+      <div class="dlg-f"><button value="cancel" class="ghost">Cancel</button><button value="ok" disabled>Add share</button></div></form>`);
+    const sel = d.querySelector('[name=group]'), newGroup = d.querySelector('[name=newGroup]');
+    const ok = d.querySelector('[value=ok]');
+    const picker = symbolPicker(d.querySelector('.sp'), {
+      note: sym => { const g = inTab(sym); return g.length ? 'already in ' + g.join(', ') : ''; },
+      onChange: pick,
+    });
+    function pick() { ok.disabled = busy || !picker.selected(); }
     sel.addEventListener('change', () => { newGroup.hidden = sel.value !== '__new'; if (!newGroup.hidden) newGroup.focus(); });
-    q.focus();
+    picker.focus();
 
     d.querySelector('form').addEventListener('submit', async e => {
       e.preventDefault();
       if (e.submitter && e.submitter.value !== 'ok') return d.close();
-      const sym = d.querySelector('[name=pick]:checked')?.value;
+      const sym = picker.selected()?.symbol;
       const isNew = sel.value === '__new';
       if (!sym) return;
       if (isNew && !newGroup.value.trim()) return showError(d, 'Type a name for the new group.');
@@ -195,5 +215,5 @@ const Watchlist = (() => {
     else if (t.dataset.wlRemove) openRemove(t.dataset.wlRemove, t.dataset.wlGroup);
   });
 
-  return {adopt, barHtml, groupControl, rowControl, isPending: () => !!pending()};
+  return {adopt, barHtml, groupControl, rowControl, symbolPicker, isPending: () => !!pending()};
 })();

@@ -154,6 +154,7 @@ def refresh_prices(symbols, cache):
     print(f"Prices: downloading {len(symbols)} ticker(s) in one batch...")
     got, errors = fetch.fetch_prices(symbols)
     for s, rows in got.items():
+        rows = fetch.drop_unfinished_day(s, rows)   # no half-day "closes" during trading hours
         ccy, div = fetch.quote_unit(s, cache.get(s, {}).get("quote_currency_raw"))
         old = load_json(price_path(s), None)
         old_n = len(old["dates"]) if old else 0

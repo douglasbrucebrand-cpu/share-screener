@@ -1,5 +1,5 @@
 // Share Screener page: reads data/latest.json (written by run_screener.py) and draws it.
-// No build step, no libraries. Needs common.js, chart.js, portfolio.js and watchlist.js (loaded first by index.html).
+// No build step, no libraries. Needs common.js, chart.js, portfolio.js, watchlist.js and calls.js (loaded first by index.html).
 
 const STALE_DAYS = 3;
 
@@ -15,6 +15,10 @@ function ensureContainers() {
     const d = document.createElement('div'); d.id = 'wlbar'; d.className = 'wlbar';
     document.getElementById('groups').before(d);
   }
+  if (!document.getElementById('calls')) {
+    const d = document.createElement('div'); d.id = 'calls'; d.hidden = true;
+    document.getElementById('groups').after(d);
+  }
   if (!document.getElementById('portfolio')) {
     const d = document.createElement('div'); d.id = 'portfolio'; d.hidden = true;
     document.getElementById('groups').after(d);
@@ -22,8 +26,9 @@ function ensureContainers() {
 }
 
 // The paper portfolio is an extra tab after the watchlists.
+const CALLS_TAB = {id: 'calls', name: 'Calls'};
 const PORTFOLIO_TAB = {id: 'portfolio', name: 'Paper portfolio'};
-const allTabs = () => [...DATA.tabs, PORTFOLIO_TAB];
+const allTabs = () => [...DATA.tabs, CALLS_TAB, PORTFOLIO_TAB];
 
 let DATA = null;
 let activeTab = null;
@@ -169,12 +174,14 @@ function renderTab() {
     `<button role="tab" data-tab="${esc(t.id)}" aria-selected="${t.id === tab.id}">${esc(t.name)}</button>`).join('');
 
   // paper portfolio tab: hide the screener parts, show the portfolio
-  const isPf = tab.id === PORTFOLIO_TAB.id;
-  for (const id of ['changes', 'topflags', 'wlbar', 'groups', 'legend']) $(id).hidden = isPf;
+  const isPf = tab.id === PORTFOLIO_TAB.id, isCalls = tab.id === CALLS_TAB.id, special = isPf || isCalls;
+  for (const id of ['changes', 'topflags', 'wlbar', 'groups', 'legend']) $(id).hidden = special;
   const intro = document.querySelector('main > .note');
-  if (intro) intro.hidden = isPf;
+  if (intro) intro.hidden = special;
   $('portfolio').hidden = !isPf;
+  $('calls').hidden = !isCalls;
   if (isPf) { Portfolio.render($('portfolio'), DATA); return; }
+  if (isCalls) { Calls.renderCallsTab($('calls'), DATA); return; }
 
   $('changes').innerHTML = changesHtml(tab.id);
 
@@ -270,6 +277,7 @@ $('changes').addEventListener('click', e => {
   tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash');
 });
 $('groups').addEventListener('keydown', onSort);
+window.addEventListener('calls-change', () => { if (DATA && activeTab === CALLS_TAB.id) renderTab(); });
 window.addEventListener('hashchange', () => {
   const id = location.hash.slice(1);
   if (DATA && allTabs().some(t => t.id === id)) setTab(id, false);
@@ -294,10 +302,11 @@ fetch('data/latest.json', {cache: 'no-cache'})
 // An older cached index.html may not load the shared scripts; fetch any that are missing.
 (function loadMissing() {
   const missing = [];
-  if (typeof fmtDate === 'undefined') missing.push('common.js?v=12');
-  if (typeof lineChart === 'undefined') missing.push('chart.js?v=12');
-  if (typeof Portfolio === 'undefined') missing.push('portfolio.js?v=12');
-  if (typeof Watchlist === 'undefined') missing.push('watchlist.js?v=12');
+  if (typeof fmtDate === 'undefined') missing.push('common.js?v=14');
+  if (typeof lineChart === 'undefined') missing.push('chart.js?v=14');
+  if (typeof Portfolio === 'undefined') missing.push('portfolio.js?v=14');
+  if (typeof Watchlist === 'undefined') missing.push('watchlist.js?v=14');
+  if (typeof Calls === 'undefined') missing.push('calls.js?v=14');
   (function next() {
     if (!missing.length) return boot();
     const sc = document.createElement('script');

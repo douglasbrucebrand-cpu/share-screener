@@ -2,6 +2,8 @@
 import math
 import time
 import warnings
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import yfinance as yf
@@ -19,6 +21,29 @@ def quote_unit(symbol, raw_currency=None):
     if not raw:
         raw = next((cur for suf, cur in SUFFIX_GUESS.items() if symbol.upper().endswith(suf)), "USD")
     return MINOR_UNITS.get(raw, (raw, 1))
+
+
+# When each market's closing price is final: (time zone, hour, minute), with a margin for
+# closing auctions and Yahoo catching up. Anything not listed is treated as a US share.
+MARKET_CLOSE = {".JO": ("Africa/Johannesburg", 17, 30)}
+US_CLOSE = ("America/New_York", 16, 30)
+
+
+def drop_unfinished_day(symbol, rows, now=None):
+    """Remove today's row if that market hasn't closed yet.
+
+    During trading hours Yahoo's daily data ends with a partial, still-moving price for today.
+    Saving it as a "close" would distort scores and call entry prices, so it is left out
+    until the market has closed.
+    """
+    if not rows:
+        return rows
+    tz, hour, minute = next((v for suf, v in MARKET_CLOSE.items() if symbol.upper().endswith(suf)), US_CLOSE)
+    local = (now or datetime.now(timezone.utc)).astimezone(ZoneInfo(tz))
+    closed = (local.hour, local.minute) >= (hour, minute)
+    if rows[-1][0] == local.strftime("%Y-%m-%d") and not closed:
+        return rows[:-1]
+    return rows
 
 
 def _clean(x):
