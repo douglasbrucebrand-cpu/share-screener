@@ -1594,5 +1594,43 @@
   "yahoo_price_to_sales": 1.6564599,
   "error": null,
   "fetched_at": "2026-10-11T18:51:31+00:00"
+ },
+ "MTN.JO": {
+  "name": "MTN Group Ltd",
+  "quote_currency_raw": "ZAc",
+  "financial_currency": "ZAR",
+  "income": [
+   {
+    "period_end": "2025-12-31",
+    "rev": 226707000000.0,
+    "gp": 172031000000.0,
+    "ni": 20262000000.0
+   },
+   {
+    "period_end": "2024-12-31",
+    "rev": 188001000000.0,
+    "gp": 131323000000.0,
+    "ni": -9369000000.0
+   },
+   {
+    "period_end": "2023-12-31",
+    "rev": 221056000000.0,
+    "gp": 157738000000.0,
+    "ni": 4092000000.0
+   },
+   {
+    "period_end": "2022-12-31",
+    "rev": 207003000000.0,
+    "gp": 150806000000.0,
+    "ni": 19037000000.0
+   }
+  ],
+  "trailing_pe": 19.179672,
+  "forward_pe": 8.757456,
+  "market_cap": 342432514048.0,
+  "total_revenue": 236381995008.0,
+  "yahoo_price_to_sales": 1.4486405,
+  "error": null,
+  "fetched_at": "2026-10-13T13:50:55+00:00"
  }
 }
