@@ -518,8 +518,10 @@ The key stays inside your Google account. It isn't in the script's code, on the 
    https://github.com/douglasbrucebrand-cpu/share-screener/blob/main/google-sheet/Code.gs (Copy raw file, as
    before), then **put your passphrase back** in the `PASSPHRASE` line. Click **Save**.
 10. **Deploy → Manage deployments**, click the **pencil icon**, set *Version* to **New version**, click **Deploy**.
-11. Google asks for permission again, because the script now also talks to GitHub and Yahoo:
-    **Authorize access** → your account → **Advanced** → **Go to … (unsafe)** → **Allow**.
+11. Google should ask for permission again, because the script now also talks to GitHub and Yahoo:
+    **Authorize access** → your account → **Advanced** → **Go to … (unsafe)** → **Allow**. **If it doesn't
+    ask**, give the permission yourself: in the **Editor**, choose **doGet** in the function menu above the
+    code, press **Run**, then **Review permissions** and allow as above.
 
 The web app address doesn't change, so you don't need to reconnect anything. Open a watchlist tab on the site
 and press **Edit watchlist**.
@@ -531,6 +533,7 @@ and press **Edit watchlist**.
 | *The script has no GitHub key yet…* | Do step 7. The property name must be exactly `GITHUB_TOKEN`. |
 | *GitHub says the key is wrong or has expired…* | Make a new key (steps 1–5) and replace the value in step 7. |
 | *GitHub says the key is not allowed to edit share-screener…* | The key needs **Contents: Read and write** on **share-screener** (steps 3–4). Edit the key on GitHub, or make a new one. |
+| *The script needs one more Google permission…* (or *"You do not have permission to call UrlFetchApp.fetch"*) | Google didn't ask for the new permission when you deployed. In Apps Script's **Editor**, choose **doGet** in the function menu above the code, press **Run**, then **Review permissions** → your account → **Advanced** → **Go to … (unsafe)** → **Allow**. No redeploy needed. |
 | *Yahoo's search isn't answering right now…* | Type the exact Yahoo symbol (e.g. `MTN.JO`) and pick **Use exactly as typed**. |
 | *Wrong passphrase.* (after updating the script) | The passphrase wasn't put back in step 9. Fix the line, save, and do step 10 again. |
 | The share still says *"being added"* after 10 minutes | Check the [Actions page](https://github.com/douglasbrucebrand-cpu/share-screener/actions) for a failed update, then see section 4. |

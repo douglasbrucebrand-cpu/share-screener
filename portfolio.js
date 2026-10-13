@@ -66,6 +66,10 @@ const Portfolio = (() => {
       if (j.error === 'Unknown action.') {
         throw new Error('Your Google Sheet script is an older version. Paste the latest Code.gs, then Deploy → Manage deployments → pencil → Version: New version → Deploy (README section 11).');
       }
+      // Google didn't ask for the "connect to an external service" permission when the script was deployed.
+      if (/permission to call UrlFetchApp/i.test(j.error || '')) {
+        throw new Error('The script needs one more Google permission. In Apps Script, choose "doGet" in the function menu above the code, press Run, then Review permissions → your account → Advanced → Go to … → Allow (README section 12).');
+      }
       throw new Error(j.error || 'The sheet refused the request.');
     }
     return j;
