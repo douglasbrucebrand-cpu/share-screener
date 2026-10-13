@@ -303,4 +303,8 @@ test('the passphrase can live in Script Properties, so updating the code never r
   assert.strictEqual(s2.call({pass: 'from-properties', action: 'ping'}).ok, true);
 });
 
+test('the authorize helper runs and makes one web request', () => {
+  assert.strictEqual(load(CODE, PASS).authorize(), 'Permission granted');
+});
+
 console.log(`\n${passed} passed`);

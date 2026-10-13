@@ -87,6 +87,18 @@ const TABLES = {
 const FORMATS = {text: '@', yesno: '@', money: '#,##0.00', units: '0.0000', whole: '0', pct: '0.0%'};
 const MAX_OPS = 500;
 
+/**
+ * Run this once from the editor if the site says the script needs a Google permission:
+ * choose "authorize" in the function menu above the code, press Run, and allow.
+ * It makes one harmless web request, so Google asks for the "connect to an external service"
+ * permission that searching Yahoo and saving to GitHub need.
+ */
+function authorize() {
+  UrlFetchApp.fetch('https://api.github.com/zen', {muteHttpExceptions: true});
+  console.log('Permission granted: the script can now reach GitHub and Yahoo.');
+  return 'Permission granted';
+}
+
 function doGet() {
   return reply({ok: true, app: 'share-screener paper portfolio',
     note: 'This web app is working. Connect it from the Paper portfolio tab of the site.'});

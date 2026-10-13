@@ -59,6 +59,7 @@ function fakeServices(opts) {
       const q = decodeURIComponent(url.split('q=')[1] || '').toLowerCase();
       return resp(200, {quotes: yahoo.quotes[q] || []});
     }
+    if (url === 'https://api.github.com/zen') return resp(200, 'Keep it simple.');
     if (url.startsWith('https://api.github.com/repos/')) {
       if ((o.headers || {}).Authorization !== 'Bearer ' + opts.token) return resp(401, {message: 'Bad credentials'});
       if ((o.method || 'get') === 'get') {
@@ -124,7 +125,7 @@ function load(codePath, passphrase, opts = {}) {
   const env = makeEnv(opts);
   const ctx = vm.createContext({...env, console, JSON, Date, Math, Number, String, Array, Object, isFinite, encodeURIComponent});
   // (older versions of the script have no formatWatchlists; they can still be loaded for testing)
-  vm.runInContext(src + "\n;this.__doPost = doPost; this.__doGet = doGet; this.__format = typeof formatWatchlists === 'function' ? formatWatchlists : null;", ctx);
+  vm.runInContext(src + "\n;this.__doPost = doPost; this.__doGet = doGet; this.__format = typeof formatWatchlists === 'function' ? formatWatchlists : null; this.__authorize = typeof authorize === 'function' ? authorize : null;", ctx);
   return {
     call: body => JSON.parse(ctx.__doPost({postData: {contents: typeof body === 'string' ? body : JSON.stringify(body)}}).getContent()),
     get: () => JSON.parse(ctx.__doGet().getContent()),
@@ -132,6 +133,7 @@ function load(codePath, passphrase, opts = {}) {
     gh: env.services.gh,
     yahoo: env.services.yahoo,
     format: obj => ctx.__format(JSON.parse(JSON.stringify(obj))),
+    authorize: () => ctx.__authorize(),
   };
 }
 

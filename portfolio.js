@@ -68,7 +68,7 @@ const Portfolio = (() => {
       }
       // Google didn't ask for the "connect to an external service" permission when the script was deployed.
       if (/permission to call UrlFetchApp/i.test(j.error || '')) {
-        throw new Error('The script needs one more Google permission. In Apps Script, choose "doGet" in the function menu above the code, press Run, then Review permissions → your account → Advanced → Go to … → Allow (README section 12).');
+        throw new Error('The script needs one more Google permission. In Apps Script, choose "authorize" in the function menu above the code (paste the latest Code.gs first if it isn\'t there), press Run, then Review permissions → your account → Advanced → Go to … → tick everything → Allow (README section 12).');
       }
       throw new Error(j.error || 'The sheet refused the request.');
     }
