@@ -26,7 +26,7 @@
  * just paste and deploy, with no line to edit.
  */
 
-const PASSPHRASE = 'CHANGE-ME';   // <-- or leave this and set a PASSPHRASE script property (README section 11)
+const PASSPHRASE = 'password';   // <-- or leave this and set a PASSPHRASE script property (README section 11)
 const GITHUB_REPO = 'douglasbrucebrand-cpu/share-screener';
 const GITHUB_FILE = 'watchlists.json';
 const GITHUB_BRANCH = 'main';
