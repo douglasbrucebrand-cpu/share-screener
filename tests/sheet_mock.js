@@ -123,7 +123,8 @@ function load(codePath, passphrase, opts = {}) {
   if (passphrase != null) src = src.replace(/const PASSPHRASE = '[^']*';/, `const PASSPHRASE = ${JSON.stringify(passphrase)};`);
   const env = makeEnv(opts);
   const ctx = vm.createContext({...env, console, JSON, Date, Math, Number, String, Array, Object, isFinite, encodeURIComponent});
-  vm.runInContext(src + '\n;this.__doPost = doPost; this.__doGet = doGet; this.__format = formatWatchlists;', ctx);
+  // (older versions of the script have no formatWatchlists; they can still be loaded for testing)
+  vm.runInContext(src + "\n;this.__doPost = doPost; this.__doGet = doGet; this.__format = typeof formatWatchlists === 'function' ? formatWatchlists : null;", ctx);
   return {
     call: body => JSON.parse(ctx.__doPost({postData: {contents: typeof body === 'string' ? body : JSON.stringify(body)}}).getContent()),
     get: () => JSON.parse(ctx.__doGet().getContent()),

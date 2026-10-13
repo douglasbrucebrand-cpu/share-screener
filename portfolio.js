@@ -61,7 +61,13 @@ const Portfolio = (() => {
     try { j = JSON.parse(await res.text()); } catch (e) {
       throw new Error("The sheet's web app didn't answer properly. Check it is deployed as a web app with access set to \"Anyone\".");
     }
-    if (!j.ok) throw new Error(j.error || 'The sheet refused the request.');
+    if (!j.ok) {
+      // An older script doesn't know newer requests (search, watchlist editing, calls).
+      if (j.error === 'Unknown action.') {
+        throw new Error('Your Google Sheet script is an older version. Paste the latest Code.gs, then Deploy → Manage deployments → pencil → Version: New version → Deploy (README section 11).');
+      }
+      throw new Error(j.error || 'The sheet refused the request.');
+    }
     return j;
   }
 

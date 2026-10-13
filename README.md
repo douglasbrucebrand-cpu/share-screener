@@ -445,6 +445,7 @@ or change the *Trade ID* column, because that's how the site matches rows to tra
 | *The script still has the example passphrase…* | Do step 4, then publish the change (see *Changing the script or passphrase* below). |
 | *Couldn't reach the sheet. Check you're online, and that the web app's access is set to "Anyone".* | If you're online: in Apps Script, **Deploy → Manage deployments → pencil icon**, check *Who has access* is **Anyone**, then **Deploy**. |
 | *That isn't an Apps Script web app address.* | Paste the address from step 7 (it starts `https://script.google.com/macros/s/` and ends `/exec`), not the spreadsheet's own address. |
+| *Your Google Sheet script is an older version…* | The new code was saved but not deployed. **Deploy → Manage deployments → pencil → Version: New version → Deploy**. (Saving alone doesn't change the live web app; and don't use *New deployment*, which makes a new address.) |
 
 ### Updating the script to a new version
 

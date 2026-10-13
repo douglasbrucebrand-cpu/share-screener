@@ -119,10 +119,11 @@ const Watchlist = (() => {
       const typed = q.value.trim().toUpperCase();
       rows = items.map(x => ({...x, symbol: x.symbol.toUpperCase()}));
       if (looksLikeSymbol(typed) && !rows.some(x => x.symbol === typed)) rows.push({symbol: typed, name: 'Use exactly as typed', exchange: '', typed: true});
-      // Only pre-select when there is exactly one choice: with several (MTN vs MTN.JO) you must pick.
+      // Only pre-select when there is exactly one real search result. Never pre-select a typed symbol:
+      // "MTN" typed is Vail Resorts in New York, not MTN Group (MTN.JO), so you must choose it yourself.
       results.innerHTML = (note ? `<p class="dim small">${esc(note)}</p>` : '') + (rows.length ? rows.map(x => {
         const warn = opts.note ? opts.note(x.symbol) : '';
-        return `<label class="wl-result"><input type="radio" name="pick" value="${esc(x.symbol)}"${rows.length === 1 && !warn ? ' checked' : ''}>
+        return `<label class="wl-result"><input type="radio" name="pick" value="${esc(x.symbol)}"${rows.length === 1 && !warn && !x.typed ? ' checked' : ''}>
           <span><b>${esc(x.symbol)}</b> <span class="dim">${esc(x.name)}${x.exchange ? ' · ' + esc(x.exchange) : ''}</span>
           ${warn ? `<span class="warnline small"> ${esc(warn)}</span>` : ''}</span></label>`;
       }).join('') : '<p class="dim small">Nothing found. Try another name, or type the exact Yahoo symbol.</p>');
