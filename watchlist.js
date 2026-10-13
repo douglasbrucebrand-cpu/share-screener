@@ -118,7 +118,10 @@ const Watchlist = (() => {
     function list(items, note) {
       const typed = q.value.trim().toUpperCase();
       rows = items.map(x => ({...x, symbol: x.symbol.toUpperCase()}));
-      if (looksLikeSymbol(typed) && !rows.some(x => x.symbol === typed)) rows.push({symbol: typed, name: 'Use exactly as typed', exchange: '', typed: true});
+      if (looksLikeSymbol(typed) && !rows.some(x => x.symbol === typed)) {
+        rows.push({symbol: typed, exchange: '', typed: true,
+          name: 'Use exactly as typed: not checked, so make sure this is the exact Yahoo symbol (Sasol, for example, is SOL.JO)'});
+      }
       // Only pre-select when there is exactly one real search result. Never pre-select a typed symbol:
       // "MTN" typed is Vail Resorts in New York, not MTN Group (MTN.JO), so you must choose it yourself.
       results.innerHTML = (note ? `<p class="dim small">${esc(note)}</p>` : '') + (rows.length ? rows.map(x => {
