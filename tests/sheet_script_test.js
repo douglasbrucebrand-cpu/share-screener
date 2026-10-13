@@ -128,13 +128,15 @@ test('opening the web app address in a browser says it is working', () => {
 
 // ---------- watchlist editing ----------
 const fs = require('fs');
-const REAL = fs.readFileSync(path.join(__dirname, '..', 'watchlists.json'), 'utf8');
+// A fixed sample, NOT the live watchlists.json: the live file changes whenever you edit your
+// watchlist, and tests must never depend on it (that once blocked the daily update).
+const REAL = fs.readFileSync(path.join(__dirname, 'fixtures', 'watchlists_sample.json'), 'utf8');
 const TOKEN = 'fake-github-key';
 const withGH = (opts = {}) => load(CODE, PASS, Object.assign({token: TOKEN, watchlist: REAL}, opts));
 const edit = (s, body) => s.call(Object.assign({pass: PASS, action: 'watchlist_edit'}, body));
 const tickers = (s, tab, group) => JSON.parse(s.gh.text).tabs.find(t => t.id === tab).groups.find(g => g.name === group).tickers;
 
-test('rewriting the real watchlists.json without changes gives the identical file', () => {
+test('rewriting a watchlists.json without changes gives the identical file', () => {
   assert.strictEqual(withGH().format(JSON.parse(REAL)), REAL);
 });
 
