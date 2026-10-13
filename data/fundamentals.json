@@ -1632,5 +1632,119 @@
   "yahoo_price_to_sales": 1.4486405,
   "error": null,
   "fetched_at": "2026-10-13T13:50:55+00:00"
+ },
+ "PPH.JO": {
+  "name": "Pepkor Holdings Ltd",
+  "quote_currency_raw": "ZAc",
+  "financial_currency": "ZAR",
+  "income": [
+   {
+    "period_end": "2025-09-30",
+    "rev": 95340000000.0,
+    "gp": 37952000000.0,
+    "ni": 5638000000.0
+   },
+   {
+    "period_end": "2024-09-30",
+    "rev": 85136000000.0,
+    "gp": 32609000000.0,
+    "ni": 2072000000.0
+   },
+   {
+    "period_end": "2023-09-30",
+    "rev": 78960000000.0,
+    "gp": 28734000000.0,
+    "ni": -1298000000.0
+   },
+   {
+    "period_end": "2022-09-30",
+    "rev": 81154000000.0,
+    "gp": 28683000000.0,
+    "ni": 6114000000.0
+   }
+  ],
+  "trailing_pe": 11.3950615,
+  "forward_pe": 9.66472,
+  "market_cap": 68075196416.0,
+  "total_revenue": 101731000320.0,
+  "yahoo_price_to_sales": 0.66916865,
+  "error": null,
+  "fetched_at": "2026-10-13T15:44:48+00:00"
+ },
+ "GOOG": {
+  "name": "Alphabet Inc.",
+  "quote_currency_raw": "USD",
+  "financial_currency": "USD",
+  "income": [
+   {
+    "period_end": "2025-12-31",
+    "rev": 402836000000.0,
+    "gp": 240301000000.0,
+    "ni": 132170000000.0
+   },
+   {
+    "period_end": "2024-12-31",
+    "rev": 350018000000.0,
+    "gp": 203712000000.0,
+    "ni": 100118000000.0
+   },
+   {
+    "period_end": "2023-12-31",
+    "rev": 307394000000.0,
+    "gp": 174062000000.0,
+    "ni": 73795000000.0
+   },
+   {
+    "period_end": "2022-12-31",
+    "rev": 282836000000.0,
+    "gp": 156633000000.0,
+    "ni": 59972000000.0
+   }
+  ],
+  "trailing_pe": 17.683893,
+  "forward_pe": 23.119963,
+  "market_cap": 4310318448640.0,
+  "total_revenue": 445865984000.0,
+  "yahoo_price_to_sales": 9.667296,
+  "error": null,
+  "fetched_at": "2026-10-13T15:44:48+00:00"
+ },
+ "MSFT": {
+  "name": "Microsoft Corporation",
+  "quote_currency_raw": "USD",
+  "financial_currency": "USD",
+  "income": [
+   {
+    "period_end": "2026-06-30",
+    "rev": 331839000000.0,
+    "gp": 225465000000.0,
+    "ni": 133749000000.0
+   },
+   {
+    "period_end": "2025-06-30",
+    "rev": 281724000000.0,
+    "gp": 193893000000.0,
+    "ni": 101832000000.0
+   },
+   {
+    "period_end": "2024-06-30",
+    "rev": 245122000000.0,
+    "gp": 171008000000.0,
+    "ni": 88136000000.0
+   },
+   {
+    "period_end": "2023-06-30",
+    "rev": 211915000000.0,
+    "gp": 146052000000.0,
+    "ni": 72361000000.0
+   }
+  ],
+  "trailing_pe": 30.728168,
+  "forward_pe": 23.03891,
+  "market_cap": 4050078138368.0,
+  "total_revenue": 331839012864.0,
+  "yahoo_price_to_sales": 12.204948,
+  "error": null,
+  "fetched_at": "2026-10-13T15:44:48+00:00"
  }
 }
