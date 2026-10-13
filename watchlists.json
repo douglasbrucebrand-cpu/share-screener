@@ -23,5 +23,5 @@
     }
   ],
   "benchmarks": {"USD": "SPY", "ZAR": "STX40.JO"},
-  "tracked": ["SASOL"]
+  "tracked": ["SASOL", "SOL.JO"]
 }
