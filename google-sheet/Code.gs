@@ -14,10 +14,17 @@
  * The site sends trades here; this script writes them to a "Trades" tab, one row per trade.
  * Anyone without the passphrase is refused. You can add your own columns to the right
  * of the existing ones (notes, say): the script leaves them alone.
+ *
+ * Optional: editing the watchlist from the website (README section 12). The script then also
+ * saves watchlists.json on GitHub, using a GitHub key kept in this project's Script Properties
+ * as GITHUB_TOKEN. The key is never written in this code, on the website or on GitHub.
  */
 
 const PASSPHRASE = 'CHANGE-ME';   // <-- choose your own, then type the same phrase on the site
 const SHEET_NAME = 'Trades';
+const GITHUB_REPO = 'douglasbrucebrand-cpu/share-screener';
+const GITHUB_FILE = 'watchlists.json';
+const GITHUB_BRANCH = 'main';
 
 // [field the site uses, column heading in the sheet, kind of value]
 const COLUMNS = [
@@ -62,13 +69,19 @@ function doPost(e) {
     Utilities.sleep(1500);   // slows down anyone guessing
     return reply({ok: false, error: 'Wrong passphrase.'});
   }
+  if (req.action === 'search') {
+    try { return reply(searchYahoo(req.q)); }
+    catch (err) { return reply({ok: false, error: 'Search failed: ' + err.message}); }
+  }
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);      // one change at a time
   try {
+    if (req.action === 'watchlist_edit') return reply(editWatchlist(req));
     const ctx = open();
     if (req.action === 'ping') {
       const ss = SpreadsheetApp.getActive();
-      return reply({ok: true, sheet: ss.getName(), url: ss.getUrl(), count: readAll(ctx).length});
+      return reply({ok: true, sheet: ss.getName(), url: ss.getUrl(), count: readAll(ctx).length,
+        watchlistEditing: !!PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN')});
     }
     if (req.action === 'apply') {
       const ops = Array.isArray(req.ops) ? req.ops.slice(0, MAX_OPS) : [];
@@ -180,4 +193,139 @@ function readAll(ctx) {
     if (p.id && p.symbol && p.buy_date) out.push(p);
   }
   return out;
+}
+
+// ---------- watchlist editing (via GitHub) ----------
+
+/** Yahoo Finance search, so you can type a company name instead of knowing the symbol. */
+function searchYahoo(q) {
+  q = String(q || '').trim().slice(0, 40);
+  if (!q) return {ok: true, results: []};
+  const res = UrlFetchApp.fetch('https://query2.finance.yahoo.com/v1/finance/search?quotesCount=10&newsCount=0&q=' +
+    encodeURIComponent(q), {muteHttpExceptions: true, headers: {'User-Agent': 'Mozilla/5.0'}});
+  let j = null;
+  try { j = JSON.parse(res.getContentText()); } catch (e) { j = null; }
+  if (res.getResponseCode() !== 200 || !j) {
+    return {ok: false, error: "Yahoo's search isn't answering right now. You can still add a share by typing its exact Yahoo symbol."};
+  }
+  const results = (j.quotes || [])
+    .filter(x => x.symbol && (x.quoteType === 'EQUITY' || x.quoteType === 'ETF'))
+    .slice(0, 8)
+    .map(x => ({symbol: String(x.symbol), name: String(x.shortname || x.longname || x.symbol),
+      exchange: String(x.exchDisp || x.exchange || ''), type: x.quoteType}));
+  return {ok: true, results};
+}
+
+function symbolOf(s) {
+  s = String(s || '').trim().toUpperCase();
+  return /^\^?[A-Z0-9][A-Z0-9.\-=]{0,14}$/.test(s) ? s : '';
+}
+
+/** Add or remove one ticker in one group, then save watchlists.json on GitHub. */
+function editWatchlist(req) {
+  const token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+  if (!token) {
+    return {ok: false, error: 'The script has no GitHub key yet. Add GITHUB_TOKEN under Apps Script > Project Settings > Script properties (README section 12).'};
+  }
+  const add = symbolOf(req.add), remove = symbolOf(req.remove);
+  if (req.add && !add) return {ok: false, error: `"${String(req.add).slice(0, 20)}" doesn't look like a Yahoo symbol.`};
+  if (!add && !remove) return {ok: false, error: 'Nothing to change.'};
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const file = githubGet(token);
+    if (!file.ok) return file;
+    const wl = file.json;
+    const tab = (wl.tabs || []).find(t => t.id === req.tab);
+    if (!tab) return {ok: false, error: 'That tab no longer exists. Refresh the page and try again.'};
+    let what, done, group;
+    if (add) {
+      const newName = String(req.newGroup || '').trim().replace(/\s+/g, ' ').slice(0, 60);
+      if (newName) {
+        group = tab.groups.find(g => g.name.toLowerCase() === newName.toLowerCase());
+        if (!group) { group = {name: newName, tickers: []}; tab.groups.push(group); }
+      } else {
+        group = tab.groups.find(g => g.name === req.group);
+      }
+      if (!group) return {ok: false, error: 'That group no longer exists. Refresh the page and try again.'};
+      if (group.tickers.indexOf(add) >= 0) {
+        return {ok: true, unchanged: true, message: `${add} is already in ${group.name}.`, tabs: wl.tabs};
+      }
+      group.tickers.push(add);
+      what = `add ${add} to ${tab.name} / ${group.name}`;
+      done = `Added ${add} to ${tab.name} / ${group.name}.`;
+    } else {
+      group = tab.groups.find(g => g.name === req.group);
+      if (!group || group.tickers.indexOf(remove) < 0) {
+        return {ok: true, unchanged: true, message: `${remove} is not in that group any more.`, tabs: wl.tabs};
+      }
+      group.tickers = group.tickers.filter(t => t !== remove);
+      if (!group.tickers.length) {
+        if (tab.groups.length === 1) {
+          return {ok: false, error: `${remove} is the last share in "${tab.name}". A tab needs at least one share, so add another first.`};
+        }
+        tab.groups = tab.groups.filter(g => g !== group);
+      }
+      what = `remove ${remove} from ${tab.name} / ${group.name}`;
+      done = `Removed ${remove} from ${tab.name} / ${group.name}.`;
+    }
+    const put = githubPut(token, formatWatchlists(wl), file.sha, `Watchlist: ${what} (from the website)`);
+    if (put.conflict) continue;          // someone else saved first: re-read and redo
+    if (!put.ok) return put;
+    return {ok: true, message: done, tabs: wl.tabs};
+  }
+  return {ok: false, error: 'The watchlist was changed somewhere else at the same moment. Please try again.'};
+}
+
+function githubHeaders(token) {
+  return {Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'};
+}
+
+function githubProblem(code) {
+  if (code === 401) return 'GitHub says the key is wrong or has expired. Make a new key and update GITHUB_TOKEN (README section 12).';
+  if (code === 403 || code === 404) return 'GitHub says the key is not allowed to edit share-screener. Check it has Contents: Read and write for that repository (README section 12).';
+  return 'GitHub answered with an error (' + code + '). Try again in a minute.';
+}
+
+function githubGet(token) {
+  const res = UrlFetchApp.fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}?ref=${GITHUB_BRANCH}`,
+    {headers: githubHeaders(token), muteHttpExceptions: true});
+  const code = res.getResponseCode();
+  if (code !== 200) return {ok: false, error: githubProblem(code)};
+  const meta = JSON.parse(res.getContentText());
+  const text = Utilities.newBlob(Utilities.base64Decode(String(meta.content).replace(/\s/g, ''))).getDataAsString('UTF-8');
+  try {
+    return {ok: true, json: JSON.parse(text), sha: meta.sha};
+  } catch (e) {
+    return {ok: false, error: 'watchlists.json on GitHub has a typo, so it can\'t be edited from the website until that is fixed there.'};
+  }
+}
+
+function githubPut(token, text, sha, message) {
+  const res = UrlFetchApp.fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
+    method: 'put', contentType: 'application/json', headers: githubHeaders(token), muteHttpExceptions: true,
+    payload: JSON.stringify({message, content: Utilities.base64Encode(text, Utilities.Charset.UTF_8), sha, branch: GITHUB_BRANCH}),
+  });
+  const code = res.getResponseCode();
+  if (code === 200 || code === 201) return {ok: true};
+  if (code === 409 || code === 422) return {ok: false, conflict: true};
+  return {ok: false, error: githubProblem(code)};
+}
+
+/** Writes watchlists.json in the same easy-to-read layout as the original: one group per line. */
+function formatWatchlists(wl) {
+  const q = JSON.stringify;
+  const flat = v => (v && typeof v === 'object' && !Array.isArray(v)
+    ? '{' + Object.keys(v).map(k => q(k) + ': ' + q(v[k])).join(', ') + '}' : q(v));
+  const out = ['{', '  "tabs": ['];
+  wl.tabs.forEach((t, i) => {
+    out.push('    {', `      "id": ${q(t.id)},`, `      "name": ${q(t.name)},`, '      "groups": [');
+    t.groups.forEach((g, j) => out.push(
+      `        {"name": ${q(g.name)}, "tickers": [${g.tickers.map(x => q(x)).join(', ')}]}${j < t.groups.length - 1 ? ',' : ''}`));
+    out.push('      ]', '    }' + (i < wl.tabs.length - 1 ? ',' : ''));
+  });
+  const rest = Object.keys(wl).filter(k => k !== 'tabs');
+  out.push('  ]' + (rest.length ? ',' : ''));
+  rest.forEach((k, i) => out.push(`  ${q(k)}: ${flat(wl[k])}` + (i < rest.length - 1 ? ',' : '')));
+  out.push('}');
+  return out.join('\n') + '\n';
 }

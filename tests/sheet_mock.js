@@ -1,5 +1,6 @@
-// A small stand-in for Google Sheets + Apps Script, so google-sheet/Code.gs can be tested
-// on a computer without a Google account. Only the parts Code.gs uses are imitated.
+// A small stand-in for Google Sheets + Apps Script (and the GitHub and Yahoo services the
+// script calls), so google-sheet/Code.gs can be tested on a computer without any accounts.
+// Only the parts Code.gs uses are imitated.
 // Like real Sheets, a date-looking string typed into a cell that is NOT formatted as
 // plain text ('@') turns into a Date, so the tests catch formatting mistakes.
 const fs = require('fs');
@@ -43,8 +44,45 @@ class Range {
   clearContent() { this.each((r, c) => this.sh.put(this.sh.v, r, c, '')); return this; }
 }
 
-function makeEnv() {
+// Pretend GitHub "contents" API holding one file, and a pretend Yahoo search.
+function fakeServices(opts) {
+  const gh = {text: opts.watchlist || '{"tabs": []}\n', sha: 'sha0', n: 0, puts: [], getCode: 200, putCode: null, conflictOnce: false};
+  const yahoo = {down: false, quotes: {
+    mtn: [{symbol: 'MTN', shortname: 'Vail Resorts, Inc.', exchDisp: 'NYSE', quoteType: 'EQUITY'},
+          {symbol: 'MTN=F', shortname: 'Micro Ultra 10-Year', exchDisp: 'CBOT', quoteType: 'FUTURE'},
+          {symbol: 'MTN.JO', shortname: 'MTN Group Ltd', exchDisp: 'Johannesburg Stock Exchange', quoteType: 'EQUITY'}],
+  }};
+  const resp = (code, body) => ({getResponseCode: () => code, getContentText: () => (typeof body === 'string' ? body : JSON.stringify(body))});
+  function fetch(url, o = {}) {
+    if (url.startsWith('https://query2.finance.yahoo.com/v1/finance/search')) {
+      if (yahoo.down) return resp(503, '<html>Service unavailable</html>');
+      const q = decodeURIComponent(url.split('q=')[1] || '').toLowerCase();
+      return resp(200, {quotes: yahoo.quotes[q] || []});
+    }
+    if (url.startsWith('https://api.github.com/repos/')) {
+      if ((o.headers || {}).Authorization !== 'Bearer ' + opts.token) return resp(401, {message: 'Bad credentials'});
+      if ((o.method || 'get') === 'get') {
+        if (gh.getCode !== 200) return resp(gh.getCode, {message: 'nope'});
+        const b64 = Buffer.from(gh.text, 'utf8').toString('base64').replace(/(.{60})/g, '$1\n');
+        return resp(200, {content: b64, sha: gh.sha});
+      }
+      const body = JSON.parse(o.payload);
+      if (gh.putCode) return resp(gh.putCode, {message: 'nope'});
+      if (gh.conflictOnce) { gh.conflictOnce = false; gh.sha = 'sha-other'; return resp(409, {message: 'conflict'}); }
+      if (body.sha !== gh.sha) return resp(409, {message: 'sha mismatch'});
+      gh.text = Buffer.from(body.content, 'base64').toString('utf8');
+      gh.sha = 'sha' + (++gh.n);
+      gh.puts.push(body.message);
+      return resp(200, {commit: {html_url: 'https://github.com/x/commit/' + gh.sha}});
+    }
+    throw new Error('unexpected fetch ' + url);
+  }
+  return {gh, yahoo, fetch};
+}
+
+function makeEnv(opts = {}) {
   const sheets = {};
+  const services = fakeServices(opts);
   const ss = {
     getSheetByName: n => sheets[n] || null,
     insertSheet: n => (sheets[n] = new Sheet(n)),
@@ -55,30 +93,42 @@ function makeEnv() {
   const env = {
     SpreadsheetApp: {getActive: () => ss},
     LockService: {getScriptLock: () => ({waitLock() {}, releaseLock() {}})},
+    PropertiesService: {getScriptProperties: () => ({getProperty: k => (k === 'GITHUB_TOKEN' ? opts.token || null : null)})},
+    UrlFetchApp: {fetch: services.fetch},
     Utilities: {
       sleep() {},
       formatDate: (d, tz, fmt) => (fmt.includes('HH') ? d.toISOString().slice(0, 19) : d.toISOString().slice(0, 10)),
+      Charset: {UTF_8: 'UTF-8'},
+      base64Encode: s => Buffer.from(s, 'utf8').toString('base64'),
+      base64Decode: s => Buffer.from(s, 'base64'),
+      newBlob: bytes => ({getDataAsString: () => Buffer.from(bytes).toString('utf8')}),
     },
     ContentService: {
       MimeType: {JSON: 'application/json'},
       createTextOutput: s => ({content: s, setMimeType() { return this; }, getContent() { return s; }}),
     },
     sheets,
+    services,
   };
   return env;
 }
 
-// Load Code.gs, optionally swapping in a passphrase. Returns {call(body), get(), sheets}.
-function load(codePath, passphrase) {
+// Load Code.gs, optionally swapping in a passphrase.
+// opts: {token: pretend GitHub key in Script Properties, watchlist: starting watchlists.json text}
+// Returns {call(body), get(), sheets, gh, yahoo, format(obj)}.
+function load(codePath, passphrase, opts = {}) {
   let src = fs.readFileSync(codePath, 'utf8');
   if (passphrase != null) src = src.replace(/const PASSPHRASE = '[^']*';/, `const PASSPHRASE = ${JSON.stringify(passphrase)};`);
-  const env = makeEnv();
-  const ctx = vm.createContext({...env, console, JSON, Date, Math, Number, String, Array, Object, isFinite});
-  vm.runInContext(src + '\n;this.__doPost = doPost; this.__doGet = doGet;', ctx);
+  const env = makeEnv(opts);
+  const ctx = vm.createContext({...env, console, JSON, Date, Math, Number, String, Array, Object, isFinite, encodeURIComponent});
+  vm.runInContext(src + '\n;this.__doPost = doPost; this.__doGet = doGet; this.__format = formatWatchlists;', ctx);
   return {
     call: body => JSON.parse(ctx.__doPost({postData: {contents: typeof body === 'string' ? body : JSON.stringify(body)}}).getContent()),
     get: () => JSON.parse(ctx.__doGet().getContent()),
     sheets: env.sheets,
+    gh: env.services.gh,
+    yahoo: env.services.yahoo,
+    format: obj => ctx.__format(JSON.parse(JSON.stringify(obj))),
   };
 }
 

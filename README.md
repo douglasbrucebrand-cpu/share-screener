@@ -25,6 +25,7 @@ A high score is a *candidate worth your judgement*, not a buy signal. Not invest
 9. [What's in this repository](#9-whats-in-this-repository)
 10. [For developers: running it on a computer](#10-for-developers-running-it-on-a-computer)
 11. [Saving trades to a Google Sheet](#11-saving-trades-to-a-google-sheet)
+12. [Editing the watchlist from the website](#12-editing-the-watchlist-from-the-website)
 
 ---
 
@@ -49,8 +50,11 @@ GitHub sometimes starts scheduled updates 5–30 minutes late when its servers a
 
 ## 2. Add or remove tickers
 
-All the tickers live in one file, **`watchlists.json`**. You can edit it on the GitHub website, so you don't
-need anything installed.
+All the tickers live in one file, **`watchlists.json`**.
+
+> **Easiest:** once it's set up, add and remove shares straight from the site with the **Edit watchlist**
+> button, with a search by company name. See [section 12](#12-editing-the-watchlist-from-the-website).
+> The steps below edit the file on GitHub directly, which you'll still need for adding or renaming tabs.
 
 ### Steps
 
@@ -311,8 +315,8 @@ succeeds.
 | Default paper-trade amounts | `portfolio.js` | `DEFAULT_AMOUNT = {ZAR: 10000, USD: 1000}` |
 
 **After changing any `.js` or `.css` file**, also raise the `?v=` number on every line that loads those files
-in `index.html` and `ticker.html`, and in the `loadMissing` section at the end of `app.js` (e.g. `?v=9` →
-`?v=10`). This makes browsers fetch the new version instead of reusing a saved copy.
+in `index.html` and `ticker.html`, and in the `loadMissing` section at the end of `app.js` (e.g. `?v=12` →
+`?v=13`). This makes browsers fetch the new version instead of reusing a saved copy.
 
 Don't change the scoring rules in `pipeline/scoring.py`: they are meant to match the original screener
 exactly, and the update will refuse to run if they don't.
@@ -330,7 +334,8 @@ API keys, no holdings and no amounts, and paper-portfolio trades never leave you
 | `index.html`, `app.js` | The main screener page and the paper portfolio tab |
 | `ticker.html`, `ticker.js` | The detail page for one share |
 | `common.js`, `chart.js`, `portfolio.js`, `style.css` | Shared formatting, charts, the paper portfolio and styling |
-| `google-sheet/Code.gs` | The script you paste into your Google Sheet to store paper trades there (section 11) |
+| `watchlist.js` | The **Edit watchlist** button: add and remove shares from the site (section 12) |
+| `google-sheet/Code.gs` | The script you paste into your Google Sheet: stores paper trades (section 11) and saves watchlist edits to GitHub (section 12) |
 | `run_screener.py` | The update script: fetches, scores and writes the data files |
 | `pipeline/fetch.py` | Talks to Yahoo Finance (prices, results, exchange rates) |
 | `pipeline/scoring.py` | The scoring rules (exact copy of the original) and the rule-by-rule breakdown |
@@ -445,3 +450,72 @@ Edit the script and save. Then **Deploy → Manage deployments**, click the **pe
 press **Disconnect** then **Connect Google Sheet** on each device and enter the new one.
 
 To cut off access completely, use **Deploy → Manage deployments → Archive**.
+
+---
+
+## 12. Editing the watchlist from the website
+
+With this set up, each watchlist tab has an **Edit watchlist** button. It lets you:
+
+- **Add a share:** press **+ Add** on a group (or **+ Add share**), type a company name or symbol, and press
+  **Search**. Pick the right result, then choose a group (or **+ New group…**) and press **Add share**. Each
+  result shows its exchange, because names can clash: *MTN* finds both MTN Group on the JSE (`MTN.JO`) and
+  Vail Resorts in New York (`MTN`).
+- **Remove a share:** press **Remove** under its name. Its past scores are kept, and you can add it back at
+  any time. Removing the last share in a group removes the group too.
+
+The change is saved to `watchlists.json` on GitHub straight away, the automatic update runs, and about
+2 minutes later the new scores appear. Until then the share shows as *"being added"*, and the page
+refreshes itself when the update has finished. Each change appears in the repository's history as
+*"Watchlist: add MTN.JO to My watchlist / JSE (from the website)"*.
+
+It works through your Google Sheet connection ([section 11](#11-saving-trades-to-a-google-sheet)), so set
+that up first. The script then needs a **GitHub key** that lets it edit this one project.
+
+### One-time setup (about 5 minutes, on a computer)
+
+**A. Make the GitHub key**
+
+1. Signed in to GitHub, go to https://github.com/settings/personal-access-tokens/new
+2. **Token name:** `Screener watchlist`. **Expiration:** choose a date, e.g. 1 year (the site tells you when it
+   has expired; then just make a new one).
+3. **Repository access:** choose **Only select repositories** and pick **share-screener**.
+4. **Permissions → Repository permissions → Contents:** set to **Read and write**. Leave everything else as it is.
+5. Click **Generate token** and **copy** it (it starts with `github_pat_`). GitHub only shows it once.
+
+This key can only change files in share-screener; it can't touch your other projects or your account.
+
+**B. Give the key to your script**
+
+6. Open your sheet → **Extensions → Apps Script**.
+7. In the left-hand bar click **Project Settings** (the gear icon). Scroll to **Script Properties** →
+   **Add script property**. Property: `GITHUB_TOKEN`, Value: paste the key. Click **Save script properties**.
+
+The key stays inside your Google account. It isn't in the script's code, on the website or on GitHub.
+
+**C. Update the script**
+
+8. Click **Editor** (the `< >` icon). **First, note your passphrase** from the `const PASSPHRASE = '…';` line.
+9. Replace all the code with the latest version from
+   https://github.com/douglasbrucebrand-cpu/share-screener/blob/main/google-sheet/Code.gs (Copy raw file, as
+   before), then **put your passphrase back** in the `PASSPHRASE` line. Click **Save**.
+10. **Deploy → Manage deployments**, click the **pencil icon**, set *Version* to **New version**, click **Deploy**.
+11. Google asks for permission again, because the script now also talks to GitHub and Yahoo:
+    **Authorize access** → your account → **Advanced** → **Go to … (unsafe)** → **Allow**.
+
+The web app address doesn't change, so you don't need to reconnect anything. Open a watchlist tab on the site
+and press **Edit watchlist**.
+
+### If something goes wrong
+
+| Message | What to do |
+|---|---|
+| *The script has no GitHub key yet…* | Do step 7. The property name must be exactly `GITHUB_TOKEN`. |
+| *GitHub says the key is wrong or has expired…* | Make a new key (steps 1–5) and replace the value in step 7. |
+| *GitHub says the key is not allowed to edit share-screener…* | The key needs **Contents: Read and write** on **share-screener** (steps 3–4). Edit the key on GitHub, or make a new one. |
+| *Yahoo's search isn't answering right now…* | Type the exact Yahoo symbol (e.g. `MTN.JO`) and pick **Use exactly as typed**. |
+| *Wrong passphrase.* (after updating the script) | The passphrase wasn't put back in step 9. Fix the line, save, and do step 10 again. |
+| The share still says *"being added"* after 10 minutes | Check the [Actions page](https://github.com/douglasbrucebrand-cpu/share-screener/actions) for a failed update, then see section 4. |
+
+To switch this off, delete the `GITHUB_TOKEN` script property, or delete the key on GitHub at
+https://github.com/settings/personal-access-tokens

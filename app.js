@@ -1,5 +1,5 @@
 // Share Screener page: reads data/latest.json (written by run_screener.py) and draws it.
-// No build step, no libraries. Needs common.js, chart.js and portfolio.js (loaded first by index.html).
+// No build step, no libraries. Needs common.js, chart.js, portfolio.js and watchlist.js (loaded first by index.html).
 
 const STALE_DAYS = 3;
 
@@ -10,6 +10,10 @@ function ensureContainers() {
     const d = document.createElement('div'); d.id = 'changes';
     const top = document.getElementById('topflags');
     top ? top.before(d) : document.querySelector('main')?.prepend(d);
+  }
+  if (!document.getElementById('wlbar')) {
+    const d = document.createElement('div'); d.id = 'wlbar'; d.className = 'wlbar';
+    document.getElementById('groups').before(d);
   }
   if (!document.getElementById('portfolio')) {
     const d = document.createElement('div'); d.id = 'portfolio'; d.hidden = true;
@@ -113,11 +117,11 @@ function changesHtml(tabId) {
 function addDays(iso, n) { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
 
 // ---------- render ----------
-function rowHtml(r) {
+function rowHtml(r, group) {
   const nameLine = `<span class="name" title="${esc(r.name)}">${esc(r.name)}</span>`;
   if (r.price == null) {
     const msg = Object.values(r.errors || {}).join('; ') || 'no data';
-    return `<tr data-sym="${esc(r.symbol)}"><td><a class="tick" href="${tickerUrl(r.symbol)}">${esc(r.symbol)}</a>${nameLine}</td><td colspan="${COLS.length - 1}" class="dim" style="text-align:left">${esc(msg)}</td></tr>`;
+    return `<tr data-sym="${esc(r.symbol)}"><td><a class="tick" href="${tickerUrl(r.symbol)}">${esc(r.symbol)}</a>${nameLine}${Watchlist.rowControl(group, r.symbol)}</td><td colspan="${COLS.length - 1}" class="dim" style="text-align:left">${esc(msg)}</td></tr>`;
   }
   const v = r.valuation || {};
   const staleLine = r.errors?.prices ? `<span class="warnline" title="${esc(r.errors.prices)}">price update failed &middot; shown as at ${fmtDate(r.price_date)}</span>` : '';
@@ -126,7 +130,7 @@ function rowHtml(r) {
   const fundTitle = r.fundamentals_period_end ? `Latest annual results: ${fmtDate(r.fundamentals_period_end)}` :
     (r.errors?.fundamentals || 'Fundamentals unavailable');
   return `<tr data-sym="${esc(r.symbol)}">
-    <td><a class="tick" href="${tickerUrl(r.symbol)}">${esc(r.symbol)}</a><span class="mscore ${scoreColor(r.composite)}">${r.composite ?? ''}</span>${nameLine}${staleLine}</td>
+    <td><a class="tick" href="${tickerUrl(r.symbol)}">${esc(r.symbol)}</a><span class="mscore ${scoreColor(r.composite)}">${r.composite ?? ''}</span>${nameLine}${staleLine}${Watchlist.rowControl(group, r.symbol)}</td>
     <td>${money(r.price, r.currency)}</td>
     <td>${pct(r.ret1m)}</td>
     <td>${pct(r.ret3m)}</td>
@@ -166,7 +170,7 @@ function renderTab() {
 
   // paper portfolio tab: hide the screener parts, show the portfolio
   const isPf = tab.id === PORTFOLIO_TAB.id;
-  for (const id of ['changes', 'topflags', 'groups', 'legend']) $(id).hidden = isPf;
+  for (const id of ['changes', 'topflags', 'wlbar', 'groups', 'legend']) $(id).hidden = isPf;
   const intro = document.querySelector('main > .note');
   if (intro) intro.hidden = isPf;
   $('portfolio').hidden = !isPf;
@@ -187,11 +191,13 @@ function renderTab() {
       <div class="name">${esc(r.group)}</div></a>`).join('') : '';
 
   // one table per group
+  $('wlbar').innerHTML = Watchlist.barHtml();
   const head = headHtml();
+  const waiting = Watchlist.isPending() ? 'being added: scores appear after the update finishes (about 2 minutes)' : 'not fetched yet: run the screener';
   $('groups').innerHTML = tab.groups.map(g => {
-    const rows = sortRows(g.tickers.map(s => T[s] || {symbol: s, name: '', errors: {prices: 'not fetched yet: run the screener'}}));
-    return `<section class="sector"><h2>${esc(g.name)}</h2>
-      <div class="tbl"><table><thead>${head}</thead><tbody>${rows.map(rowHtml).join('')}</tbody></table></div></section>`;
+    const rows = sortRows(g.tickers.map(s => T[s] || {symbol: s, name: '', errors: {prices: waiting}}));
+    return `<section class="sector"><h2>${esc(g.name)}${Watchlist.groupControl(g.name)}</h2>
+      <div class="tbl"><table><thead>${head}</thead><tbody>${rows.map(r => rowHtml(r, g.name)).join('')}</tbody></table></div></section>`;
   }).join('');
 }
 
@@ -273,6 +279,7 @@ fetch('data/latest.json', {cache: 'no-cache'})
   .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
   .then(d => {
     DATA = d;
+    Watchlist.adopt(d);
     const want = [location.hash.slice(1), store.get('screener_tab')];
     activeTab = want.find(id => id && allTabs().some(t => t.id === id)) || d.tabs[0].id;
     renderStatic();
@@ -287,9 +294,10 @@ fetch('data/latest.json', {cache: 'no-cache'})
 // An older cached index.html may not load the shared scripts; fetch any that are missing.
 (function loadMissing() {
   const missing = [];
-  if (typeof fmtDate === 'undefined') missing.push('common.js?v=11');
-  if (typeof lineChart === 'undefined') missing.push('chart.js?v=11');
-  if (typeof Portfolio === 'undefined') missing.push('portfolio.js?v=11');
+  if (typeof fmtDate === 'undefined') missing.push('common.js?v=12');
+  if (typeof lineChart === 'undefined') missing.push('chart.js?v=12');
+  if (typeof Portfolio === 'undefined') missing.push('portfolio.js?v=12');
+  if (typeof Watchlist === 'undefined') missing.push('watchlist.js?v=12');
   (function next() {
     if (!missing.length) return boot();
     const sc = document.createElement('script');

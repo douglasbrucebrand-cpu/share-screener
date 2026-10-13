@@ -119,6 +119,20 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   font-size:13px;max-width:calc(100% - 32px);z-index:10;box-shadow:0 6px 20px rgba(0,0,0,.5)}
 #pf-toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 
+/* ---------- watchlist editing ---------- */
+.wlbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
+.wl-wait{color:var(--warn)}
+.wl-small{font-size:11px;padding:2px 8px;margin-left:8px;text-transform:none;letter-spacing:0;vertical-align:middle}
+.wl-remove{display:block;margin-top:3px;font-size:11px;background:none;border:1px solid #4a2523;color:var(--bad);border-radius:6px;padding:1px 7px;cursor:pointer}
+.wl-remove:hover,.wl-remove:focus-visible{border-color:var(--bad)}
+.wl-searchrow{display:flex;gap:8px;margin-top:4px}
+.wl-searchrow input.txt{margin-top:0;flex:1;min-width:0}
+.wl-results{display:flex;flex-direction:column;gap:2px;margin:8px 0;max-height:260px;overflow-y:auto}
+.wl-result{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px}
+.wl-result:hover{background:var(--panel2)}
+.wl-result input{margin-top:3px}
+select.txt{appearance:auto}
+
 /* ---------- paper portfolio ---------- */
 .pf-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .pf-sheet{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-bottom:10px}

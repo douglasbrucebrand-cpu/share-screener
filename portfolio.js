@@ -522,6 +522,14 @@ const Portfolio = (() => {
     if ([KEY, SHEET_KEY, QUEUE_KEY].includes(e.key)) { state = null; sheetCfg = null; window.dispatchEvent(new Event('portfolio-change')); }
   });
 
-  return {buy, openFor, render, autoSync, syncState: () => (load(), {connected: !!sheetCfg, state: sync.state, waiting: queue.length}),
+  // Used by watchlist.js: send a request through the connected sheet's script.
+  function sheetCall(body) {
+    load();
+    if (!sheetCfg) return Promise.reject(new Error('Connect your Google Sheet first (Paper portfolio tab).'));
+    return api(sheetCfg, body);
+  }
+
+  return {buy, openFor, render, autoSync, toast, sheetCall, connected: () => (load(), !!sheetCfg),
+    syncState: () => (load(), {connected: !!sheetCfg, state: sync.state, waiting: queue.length}),
     storageBlocked: () => (load(), storageOK === false)};
 })();

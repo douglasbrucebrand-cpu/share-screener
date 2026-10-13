@@ -1,13 +1,16 @@
 // Runs google-sheet/Code.gs on this computer as a pretend Google web app, for testing the site.
-// Usage: node tests/sheet_mock_server.js <port> <passphrase> [path/to/Code.gs]
+// Usage: node tests/sheet_mock_server.js <port> <passphrase> [path/to/Code.gs] [path/to/watchlists.json]
+// Watchlist edits go to a pretend copy of watchlists.json (see GET /__watchlist), never to GitHub.
 // Then connect the site to http://localhost:<port>/exec with that passphrase.
 // GET /__offline/on and /__offline/off make it refuse requests, to test "can't reach the sheet".
+const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const {load} = require('./sheet_mock');
 
-const [port = '8771', pass = 'local-test', code = path.join(__dirname, '..', 'google-sheet', 'Code.gs')] = process.argv.slice(2);
-const app = load(code, pass);
+const [port = '8771', pass = 'local-test', code = path.join(__dirname, '..', 'google-sheet', 'Code.gs'),
+  wlPath = path.join(__dirname, '..', 'watchlists.json')] = process.argv.slice(2);
+const app = load(code, pass, {token: 'pretend-github-key', watchlist: fs.readFileSync(wlPath, 'utf8')});
 let offline = false;
 
 http.createServer((req, res) => {
@@ -17,6 +20,7 @@ http.createServer((req, res) => {
   };
   if (req.url === '/__offline/on') { offline = true; return send(200, {offline}); }
   if (req.url === '/__offline/off') { offline = false; return send(200, {offline}); }
+  if (req.url === '/__watchlist') { res.writeHead(200, {'Content-Type': 'text/plain'}); return res.end(app.gh.text); }
   if (req.url === '/__rows') {
     const sh = app.sheets.Trades;
     return send(200, sh ? sh.getRange(1, 1, Math.max(sh.getLastRow(), 1), sh.getLastColumn() || 1).getValues() : []);
