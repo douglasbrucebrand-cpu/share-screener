@@ -1784,5 +1784,18 @@
   "yahoo_price_to_sales": 12.223381,
   "error": null,
   "fetched_at": "2026-10-15T11:23:37+00:00"
+ },
+ "STX40.JO": {
+  "name": "Satrix 40 Portfolio",
+  "quote_currency_raw": "ZAc",
+  "financial_currency": null,
+  "income": [],
+  "trailing_pe": null,
+  "forward_pe": null,
+  "market_cap": null,
+  "total_revenue": null,
+  "yahoo_price_to_sales": null,
+  "error": null,
+  "fetched_at": "2026-10-15T11:32:51+00:00"
  }
 }
