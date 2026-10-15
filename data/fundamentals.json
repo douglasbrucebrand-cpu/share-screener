@@ -1746,5 +1746,43 @@
   "yahoo_price_to_sales": 12.204948,
   "error": null,
   "fetched_at": "2026-10-13T15:44:48+00:00"
+ },
+ "MSCI": {
+  "name": "MSCI Inc.",
+  "quote_currency_raw": "USD",
+  "financial_currency": "USD",
+  "income": [
+   {
+    "period_end": "2025-12-31",
+    "rev": 3134459000.0,
+    "gp": 2584093000.0,
+    "ni": 1202305000.0
+   },
+   {
+    "period_end": "2024-12-31",
+    "rev": 2856128000.0,
+    "gp": 2341746000.0,
+    "ni": 1109128000.0
+   },
+   {
+    "period_end": "2023-12-31",
+    "rev": 2528920000.0,
+    "gp": 2082339000.0,
+    "ni": 1148592000.0
+   },
+   {
+    "period_end": "2022-12-31",
+    "rev": 2248598000.0,
+    "gp": 1844257000.0,
+    "ni": 870573000.0
+   }
+  ],
+  "trailing_pe": 30.62951,
+  "forward_pe": 24.92084,
+  "market_cap": 40749805568.0,
+  "total_revenue": 3333758976.0,
+  "yahoo_price_to_sales": 12.223381,
+  "error": null,
+  "fetched_at": "2026-10-15T11:23:37+00:00"
  }
 }
