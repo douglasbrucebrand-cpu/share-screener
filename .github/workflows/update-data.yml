@@ -12,6 +12,7 @@ on:
     branches: [main]
     paths:
       - watchlists.json
+      - lazy_settings.json
       - run_screener.py
       - requirements.txt
       - "pipeline/**"
@@ -46,7 +47,7 @@ jobs:
 
       # If the scoring drifts from the original JavaScript (or change-tracking breaks), stop before publishing.
       - name: Check scoring still matches the original
-        run: python -m unittest -v tests.test_parity tests.test_changes tests.test_breakdown tests.test_watchlists tests.test_sheet_script tests.test_calls_js tests.test_market_hours tests.test_tracked
+        run: python -m unittest -v tests.test_parity tests.test_changes tests.test_breakdown tests.test_watchlists tests.test_sheet_script tests.test_calls_js tests.test_market_hours tests.test_tracked tests.test_lazy
 
       - name: Fetch data and score
         run: |
@@ -66,8 +67,11 @@ jobs:
             exit 0
           fi
           git commit -m "Data update $(date -u +%Y-%m-%d)"
+          # If another update saved data meanwhile, keep this run's freshly calculated files
+          # (every run rebuilds all the data, so the newest run is the one to keep).
           for i in 1 2 3; do
-            git pull --rebase && git push && exit 0
+            git pull --rebase -X theirs && git push && exit 0
+            git rebase --abort 2>/dev/null || true
             sleep 10
           done
           exit 1

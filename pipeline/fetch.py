@@ -59,15 +59,15 @@ def _clean(x):
 
 # ---------- prices ----------
 
-def _download(symbols):
+def _download(symbols, period="2y"):
     return yf.download(
-        symbols, period="2y", interval="1d", group_by="ticker",
+        symbols, period=period, interval="1d", group_by="ticker",
         auto_adjust=True, threads=True, progress=False,
     )
 
 
 def _extract(df, symbol):
-    """Pull one ticker's (date, close, volume) rows out of a batch download."""
+    """Pull one ticker's (date, close, volume, low, high) rows out of a batch download."""
     if df is None or df.empty:
         return None
     try:
@@ -76,17 +76,24 @@ def _extract(df, symbol):
         return None
     if "Close" not in sub:
         return None
-    sub = sub[["Close", "Volume"]].dropna(subset=["Close"])
+    cols = [c for c in ("Close", "Volume", "Low", "High") if c in sub]
+    sub = sub[cols].dropna(subset=["Close"])
     if sub.empty:
         return None
+
+    def num(row, name):
+        v = getattr(row, name, None)
+        return float(row.Close) if v is None or pd.isna(v) else float(v)
+
     return [
-        (idx.strftime("%Y-%m-%d"), float(row.Close), 0 if pd.isna(row.Volume) else int(row.Volume))
+        (idx.strftime("%Y-%m-%d"), float(row.Close), 0 if pd.isna(row.Volume) else int(row.Volume),
+         num(row, "Low"), num(row, "High"))
         for idx, row in sub.iterrows()
     ]
 
 
-def fetch_prices(symbols, attempts=4, base_delay=5):
-    """Batch-download ~2 years of daily closes and volume.
+def fetch_prices(symbols, attempts=4, base_delay=5, period="2y"):
+    """Batch-download daily closes, volume, lows and highs (`period` of history, e.g. "10y").
 
     Retries the tickers that came back empty, waiting longer each time
     (5s, 15s, 45s). Returns ({symbol: rows}, {symbol: error message}).
@@ -100,7 +107,7 @@ def fetch_prices(symbols, attempts=4, base_delay=5):
             print(f"  retrying {len(pending)} ticker(s) in {wait}s: {', '.join(pending)}")
             time.sleep(wait)
         try:
-            df = _download(pending)
+            df = _download(pending, period)
         except Exception as e:  # network trouble, rate limit, etc.
             for s in pending:
                 last_err[s] = f"download failed: {e}"[:200]

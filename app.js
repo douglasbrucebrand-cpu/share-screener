@@ -1,5 +1,5 @@
 // Share Screener page: reads data/latest.json (written by run_screener.py) and draws it.
-// No build step, no libraries. Needs common.js, chart.js, portfolio.js, watchlist.js and calls.js (loaded first by index.html).
+// No build step, no libraries. Needs common.js, chart.js, portfolio.js, watchlist.js, calls.js and lazy.js (loaded first by index.html).
 
 const STALE_DAYS = 3;
 
@@ -10,6 +10,10 @@ function ensureContainers() {
     const d = document.createElement('div'); d.id = 'changes';
     const top = document.getElementById('topflags');
     top ? top.before(d) : document.querySelector('main')?.prepend(d);
+  }
+  if (!document.getElementById('lazybar')) {
+    const d = document.createElement('div'); d.id = 'lazybar'; d.className = 'lazybar';
+    document.getElementById('groups').before(d);
   }
   if (!document.getElementById('wlbar')) {
     const d = document.createElement('div'); d.id = 'wlbar'; d.className = 'wlbar';
@@ -70,6 +74,8 @@ const COLS = [
   {key: 'composite', label: 'Composite', get: r => r.composite},
   {key: 'trend', label: 'Score trend', get: r => (r.trend && r.trend.length > 1 ? r.trend[r.trend.length - 1][1] - r.trend[0][1] : null),
    title: 'Composite score over the last 30 runs (sorts by the change)'},
+  {key: 'lazy', label: 'Lazy W / D', get: r => Lazy.sortKey(r),
+   title: "Simon Brown's lazy trading system: weekly and daily state (sorts in trade first, newest first)"},
   {key: 'pe', label: 'P/E', get: r => pos(r.valuation?.trailing_pe), grp: true, dir: 1, title: 'Trailing price / earnings'},
   {key: 'fpe', label: 'Fwd P/E', get: r => pos(r.valuation?.forward_pe), dir: 1, title: 'Price / next year’s expected earnings'},
   {key: 'ps', label: 'P/S', get: r => r.valuation?.price_to_sales, dir: 1, title: 'Market cap / last 12 months’ revenue'},
@@ -144,6 +150,7 @@ function rowHtml(r, group) {
     <td>${scoreCell(r.fund, fundTitle)}</td>
     <td>${scoreCell(r.composite)}</td>
     <td>${scoreSpark(r.trend)}</td>
+    <td class="lzcol">${Lazy.cell(r)}</td>
     <td class="grp">${ratio(v.trailing_pe, 'Not meaningful: negative earnings')}</td>
     <td>${ratio(v.forward_pe, 'Not meaningful: a loss is expected')}</td>
     <td>${ratio(v.price_to_sales)}</td>
@@ -175,7 +182,7 @@ function renderTab() {
 
   // paper portfolio tab: hide the screener parts, show the portfolio
   const isPf = tab.id === PORTFOLIO_TAB.id, isCalls = tab.id === CALLS_TAB.id, special = isPf || isCalls;
-  for (const id of ['changes', 'topflags', 'wlbar', 'groups', 'legend']) $(id).hidden = special;
+  for (const id of ['changes', 'topflags', 'wlbar', 'lazybar', 'groups', 'legend']) $(id).hidden = special;
   const intro = document.querySelector('main > .note');
   if (intro) intro.hidden = special;
   $('portfolio').hidden = !isPf;
@@ -201,8 +208,14 @@ function renderTab() {
   $('wlbar').innerHTML = Watchlist.barHtml();
   const head = headHtml();
   const waiting = Watchlist.isPending() ? 'being added: scores appear after the update finishes (about 2 minutes)' : 'not fetched yet: run the screener';
+  $('lazybar').innerHTML = Lazy.filterBar();
   $('groups').innerHTML = tab.groups.map(g => {
-    const rows = sortRows(g.tickers.map(s => T[s] || {symbol: s, name: '', errors: {prices: waiting}}));
+    const all = g.tickers.map(s => T[s] || {symbol: s, name: '', errors: {prices: waiting}});
+    const rows = sortRows(all.filter(Lazy.matches));
+    if (Lazy.active() && !rows.length) {
+      return `<section class="sector"><h2>${esc(g.name)}${Watchlist.groupControl(g.name)}</h2>
+        <p class="dim small">None of the ${all.length} shares in this group match the lazy-system filters.</p></section>`;
+    }
     return `<section class="sector"><h2>${esc(g.name)}${Watchlist.groupControl(g.name)}</h2>
       <div class="tbl"><table><thead>${head}</thead><tbody>${rows.map(r => rowHtml(r, g.name)).join('')}</tbody></table></div></section>`;
   }).join('');
@@ -225,7 +238,7 @@ function renderStatic() {
   $('legend').innerHTML = 'Composite = 0.6 &times; momentum + 0.4 &times; fundamentals. ' +
     'Fund = &ndash; means fundamentals unavailable (common for early-stage / loss-making names); composite then uses momentum only. ' +
     '<b>Expensive</b> = forward P/E above 40, or price-to-sales above 10 when no profit is expected; it does not affect the score. ' +
-    'n/m = not meaningful (negative earnings). Prices in each share’s own currency. Not investment advice.';
+    'n/m = not meaningful (negative earnings). Prices in each share’s own currency. ' + Lazy.legend + ' Not investment advice.';
 
   const errs = DATA.errors || [];
   if (errs.length) {
@@ -302,11 +315,12 @@ fetch('data/latest.json', {cache: 'no-cache'})
 // An older cached index.html may not load the shared scripts; fetch any that are missing.
 (function loadMissing() {
   const missing = [];
-  if (typeof fmtDate === 'undefined') missing.push('common.js?v=20');
-  if (typeof lineChart === 'undefined') missing.push('chart.js?v=20');
-  if (typeof Portfolio === 'undefined') missing.push('portfolio.js?v=20');
-  if (typeof Watchlist === 'undefined') missing.push('watchlist.js?v=20');
-  if (typeof Calls === 'undefined') missing.push('calls.js?v=20');
+  if (typeof fmtDate === 'undefined') missing.push('common.js?v=21');
+  if (typeof lineChart === 'undefined') missing.push('chart.js?v=21');
+  if (typeof Portfolio === 'undefined') missing.push('portfolio.js?v=21');
+  if (typeof Watchlist === 'undefined') missing.push('watchlist.js?v=21');
+  if (typeof Calls === 'undefined') missing.push('calls.js?v=21');
+  if (typeof Lazy === 'undefined') missing.push('lazy.js?v=21');
   (function next() {
     if (!missing.length) return boot();
     const sc = document.createElement('script');

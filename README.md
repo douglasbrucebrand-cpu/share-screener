@@ -26,6 +26,7 @@ A high score is a *candidate worth your judgement*, not a buy signal. Not invest
 10. [For developers: running it on a computer](#10-for-developers-running-it-on-a-computer)
 11. [Saving trades to a Google Sheet](#11-saving-trades-to-a-google-sheet)
 12. [Editing the watchlist from the website](#12-editing-the-watchlist-from-the-website)
+13. [The lazy trading system (Simon Brown)](#13-the-lazy-trading-system-simon-brown)
 
 ---
 
@@ -338,6 +339,7 @@ API keys, no holdings and no amounts, and paper-portfolio trades never leave you
 | `ticker.html`, `ticker.js` | The detail page for one share |
 | `common.js`, `chart.js`, `portfolio.js`, `style.css` | Shared formatting, charts, the paper portfolio and styling |
 | `watchlist.js` | The **Edit watchlist** button: add and remove shares from the site (section 12) |
+| `lazy.js`, `pipeline/lazy.py`, `lazy_settings.json` | Simon Brown's lazy trading system: the column and filters, the calculation, and its settings (section 13) |
 | `calls.js` | The **Calls** tab and **Tag a call**: analyst calls, kept in your Google Sheet (or browser), never in this repository |
 | `google-sheet/Code.gs` | The script you paste into your Google Sheet: stores paper trades (section 11) and analyst calls, and saves watchlist edits to GitHub (section 12) |
 | `run_screener.py` | The update script: fetches, scores and writes the data files |
@@ -540,3 +542,43 @@ and press **Edit watchlist**.
 
 To switch this off, delete the `GITHUB_TOKEN` script property, or delete the key on GitHub at
 https://github.com/settings/personal-access-tokens
+
+---
+
+## 13. The lazy trading system (Simon Brown)
+
+A trend-following signal based on Simon Brown's "lazy trading system" (Just One Lap). It sits **alongside**
+the screener's scores and never changes them. The daily update works it out for every watchlist share, on
+**weekly** bars (Simon's preferred version, weeks ending Friday) and **daily** bars.
+
+### The rules
+
+Three exponential moving averages of the closing price: **EMA15, EMA30, EMA60**.
+
+- **Primary trend:** bullish (▲) if EMA30 is above EMA60, bearish (▼) if below. Shown even with no setup.
+- **Triggered:** a bar closes back above EMA15 (having closed at or below it the bar before) while
+  EMA15 > EMA30 > EMA60.
+- **In trade:** while triggered, a later bar closes higher than the bar before and still above EMA15. Entry is
+  that close. A close below EMA15 first **cancels** the trigger.
+- **Exited:**
+  - *Phase 1:* a close more than 20% below the highest close since entry (a trailing stop).
+  - *Phase 2:* once that stop has risen to the entry price or higher (breakeven), the exit is a close below the
+    most recent **swing low**: a bar whose low is lower than the 2 bars either side of it. A swing low only
+    counts once those 2 later bars have closed, so nothing uses information from the future.
+
+The weekly version ignores the current, unfinished week. Prices are dividend-adjusted (as for the scores), so
+EMA levels can differ a little from a chart site showing unadjusted prices, mostly for high-dividend shares.
+
+### On the site
+
+- **Lazy W / D column** on both watchlist tabs: weekly (W) and daily (D) state, the trend arrow, and how long
+  it's been in that state (e.g. `27w`, `71d`, or `new`). Hover over a state for its date, entry price and
+  current stop. Click the column heading to sort (in trade first, newest first).
+- **Filters** above the tables: weekly state, daily state and weekly trend. They're remembered in your browser.
+
+### Settings
+
+All in **`lazy_settings.json`**: EMA periods (`[15, 30, 60]`), trailing stop % (`20`), swing-low lookback
+(`2`, my reading of Simon's "lower low" rule), weekly/daily on or off, market benchmarks, cost per trade %,
+automatic system trades on or off, and how many years of history to use (`10`). Edit it on GitHub like
+`watchlists.json`; the update runs straight away.

@@ -1,0 +1,10 @@
+{
+  "ema": [15, 30, 60],
+  "trailing_stop_pct": 20,
+  "swing_lookback": 2,
+  "timeframes": {"weekly": true, "daily": true},
+  "market_benchmarks": ["QQQ", "STX40.JO"],
+  "cost_per_trade_pct": 0,
+  "auto_paper_trades": true,
+  "history_years": 10
+}

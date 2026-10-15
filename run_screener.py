@@ -15,9 +15,9 @@ import json
 import math
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
-from pipeline import changes, fetch, scoring
+from pipeline import changes, fetch, lazy, scoring
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(ROOT, "data")
@@ -154,17 +154,32 @@ def refresh_fundamentals(symbols, cache, force):
             print(f"  [{i}/{len(due)}] {s}: FAILED, keeping previous data ({e})")
 
 
-def refresh_prices(symbols, cache):
-    """Batch-download prices. Returns {symbol: error} for tickers that failed."""
-    print(f"Prices: downloading {len(symbols)} ticker(s) in one batch...")
-    got, errors = fetch.fetch_prices(symbols)
+def refresh_prices(symbols, cache, years=2):
+    """Batch-download prices; save the last 2 years of each to data/prices/.
+
+    Returns ({symbol: error}, {symbol: full history}) where the full history (up to `years`, with
+    daily lows and highs) is only used for calculations such as the lazy system, never published.
+    """
+    print(f"Prices: downloading {len(symbols)} ticker(s), {years} years, in one batch...")
+    got, errors = fetch.fetch_prices(symbols, period=f"{max(2, int(years))}y")
+    full = {}
     for s, rows in got.items():
         rows = fetch.drop_unfinished_day(s, rows)   # no half-day "closes" during trading hours
         ccy, div = fetch.quote_unit(s, cache.get(s, {}).get("quote_currency_raw"))
+        full[s] = {
+            "dates": [r[0] for r in rows],
+            "close": [r[1] / div for r in rows],
+            "low": [(r[3] if len(r) > 3 else r[1]) / div for r in rows],
+            "high": [(r[4] if len(r) > 4 else r[1]) / div for r in rows],
+        }
+        if rows:   # publish 2 years, as before
+            cutoff = (date.fromisoformat(rows[-1][0]) - timedelta(days=730)).isoformat()
+            rows = [r for r in rows if r[0] >= cutoff]
         old = load_json(price_path(s), None)
         old_n = len(old["dates"]) if old else 0
         if len(rows) < 0.5 * old_n:
             errors[s] = f"only {len(rows)} days returned (had {old_n}); kept previous"
+            full.pop(s, None)
             continue
         save_json(price_path(s), {
             "symbol": s,
@@ -177,7 +192,23 @@ def refresh_prices(symbols, cache):
     for s, e in errors.items():
         print(f"  {s}: {e}")
     print(f"  {len(got)} ok, {len(errors)} problem(s).")
-    return errors
+    return errors, full
+
+
+def lazy_signals(symbols, full, settings, run_date, previous):
+    """Simon Brown's lazy system for each share: weekly and daily state (pipeline/lazy.py).
+
+    A share whose prices failed to download keeps its previous result, marked as not updated.
+    """
+    out = {}
+    for s in symbols:
+        if s in full and full[s]["dates"]:
+            h = full[s]
+            res = lazy.analyse(h["dates"], h["close"], h["low"], h["high"], settings, run_date)
+            out[s] = {tf: lazy.summary(r) for tf, r in res.items()}
+        elif (previous.get(s) or {}).get("lazy"):
+            out[s] = dict(previous[s]["lazy"], stale=True)
+    return out
 
 
 def valuation(f, price_ccy, fx):
@@ -273,6 +304,8 @@ def update_history(rows, run_date):
             "date": run_date, "symbol": r["symbol"], "price": r.get("price"), "currency": r.get("currency"),
             "mom": r["mom"], "fund": r["fund"], "composite": r["composite"],
             "badges": [b[0] for b in r["sig"] + r.get("flags", [])],
+            "lazy_w": (r.get("lazy") or {}).get("weekly", {}).get("state"),
+            "lazy_d": (r.get("lazy") or {}).get("daily", {}).get("state"),
         })
     keep.sort(key=lambda r: (r["date"], r["symbol"]))
     save_json(path, {"rows": keep})
@@ -296,7 +329,8 @@ def main():
 
     # Benchmarks and tracked shares: prices only (not scored, not shown on the tabs).
     extras = list(dict.fromkeys(t for t in list(wl["benchmarks"].values()) + wl["tracked"] if t not in symbols))
-    price_errors = refresh_prices(symbols + extras, fcache)
+    lazy_settings = lazy.load_settings(os.path.join(ROOT, "lazy_settings.json"))
+    price_errors, full_history = refresh_prices(symbols + extras, fcache, lazy_settings["history_years"])
     for b in extras:
         if b in price_errors:
             print(f"  warning: {b} prices not updated ({price_errors.pop(b)})")
@@ -315,6 +349,9 @@ def main():
 
     rows = {s: score_ticker(s, fcache, fx, price_errors.get(s)) for s in symbols}
     run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    previous = load_json(os.path.join(DATA, "latest.json"), {}).get("tickers", {})
+    for s, sig in lazy_signals(symbols, full_history, lazy_settings, run_date, previous).items():
+        rows[s]["lazy"] = sig
     price_dates = [r["price_date"] for r in rows.values() if r.get("price_date")]
     latest = {
         "schema": 1,
@@ -324,6 +361,7 @@ def main():
         "tabs": wl["tabs"],
         "benchmarks": wl["benchmarks"],
         "tracked": wl["tracked"],
+        "lazy_settings": lazy_settings,
         "tickers": rows,
         "errors": [{"symbol": s, "stage": k, "message": v} for s, r in rows.items() for k, v in r["errors"].items()],
     }
