@@ -220,6 +220,14 @@ label.check{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:10
 .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
 .seg-view{margin-left:auto}
 .lazystatus{margin:8px 0 0;color:var(--text)}
+.bt-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:8px 0}
+.bt-tile{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.bt-tile .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.bt-tile .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.seg-bt{margin-left:auto}
+tr.bt-open td{background:rgba(63,185,80,.06)}
+.bt-verdict{margin:4px 0 10px}
+#backtest table.plain td:last-child,#backtest table.plain th:last-child{text-align:left;white-space:normal}
 .lazystatus:empty{display:none}
 .marker-key .mk{display:inline-block;margin-right:5px;font-weight:700;color:var(--muted)}
 .marker-key .mk.up{color:var(--good)} .marker-key .mk.down{color:var(--bad)} .marker-key .mk.trig{color:var(--warn)}

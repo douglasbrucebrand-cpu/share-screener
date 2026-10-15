@@ -220,6 +220,8 @@ def lazy_signals(symbols, full, settings, run_date, previous):
                 "symbol": s, "updated_at": now_iso(),
                 "settings": {k: settings[k] for k in ("ema", "trailing_stop_pct", "swing_lookback")},
                 **{tf: lazy.chart_data(r, since) for tf, r in res.items()},
+                # Backtest over the full history (up to 10 years) on each timeframe.
+                "backtest": {tf: lazy.backtest(r, settings["cost_per_trade_pct"]) for tf, r in res.items()},
             })
         elif (previous.get(s) or {}).get("lazy"):
             out[s] = dict(previous[s]["lazy"], stale=True)

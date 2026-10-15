@@ -24,7 +24,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 // ---------- generic line chart (+ optional volume panel underneath, sharing the date axis) ----------
 // o = {dates, series:[{name, color, values, width}], yMin, yMax, fmtY, height, volume, tip(i),
 //      markers:[{i, kind: 'entry'|'exit'|'trigger'|'cancelled', title}],  (placed on series[0])
-//      lines:[{y, from, label, color}]}                                   (dashed level, e.g. a stop)
+//      lines:[{y, from, label, color}],                                   (dashed level, e.g. a stop)
+//      log: true}                                                          (log scale for growth)
 function lineChart(host, o) {
   const n = o.dates.length;
   const W = Math.max(280, host.clientWidth);
@@ -33,18 +34,39 @@ function lineChart(host, o) {
   const pw = W - m.l - m.r, ph = o.height - m.t - m.b - volH - gap;
   const X = i => m.l + (n > 1 ? i / (n - 1) : 0.5) * pw;
 
-  let lo = o.yMin, hi = o.yMax;
-  if (lo == null || hi == null) {
-    const vals = o.series.flatMap(s => s.values).filter(v => v != null);
-    const mn = Math.min(...vals), mx = Math.max(...vals), pad = (mx - mn || mx || 1) * 0.06;
-    lo = lo ?? mn - pad; hi = hi ?? mx + pad;
+  let lo = o.yMin, hi = o.yMax, Y, ticks, step;
+  if (o.log) {
+    // Log scale (o.log = true): equal percentage moves look equal. Ticks on a 1-2-5 sequence.
+    const vals = o.series.flatMap(s => s.values).filter(v => v != null && v > 0);
+    const mn = Math.min(...vals) / 1.08, mx = Math.max(...vals) * 1.08;
+    const L = v => Math.log10(v), l0 = L(mn), l1 = L(mx);
+    Y = v => m.t + ph - (L(Math.max(v, 1e-9)) - l0) / (l1 - l0) * ph;
+    // the coarsest 1-2-5 style set that still gives at least 3 gridlines (at most ~7)
+    const sets = [[1], [1, 3], [1, 2, 5], [1, 1.5, 2, 3, 5, 7], [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8]];
+    for (const set of sets) {
+      ticks = [];
+      for (let e = Math.floor(l0) - 1; e <= Math.ceil(l1); e++) {
+        for (const k of set) { const v = +(k * 10 ** e).toPrecision(6); if (v >= mn && v <= mx) ticks.push(v); }
+      }
+      if (ticks.length >= 3) break;
+    }
+    if (ticks.length > 7) ticks = ticks.filter((v, i) => i % Math.ceil(ticks.length / 7) === 0);
+    lo = mn; hi = mx; step = 1;
+  } else {
+    if (lo == null || hi == null) {
+      const vals = o.series.flatMap(s => s.values).filter(v => v != null);
+      const mn = Math.min(...vals), mx = Math.max(...vals), pad = (mx - mn || mx || 1) * 0.06;
+      lo = lo ?? mn - pad; hi = hi ?? mx + pad;
+    }
+    Y = v => m.t + ph - (v - lo) / (hi - lo) * ph;
+    step = niceStep(hi - lo, 4);
+    ticks = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push(v);
   }
-  const Y = v => m.t + ph - (v - lo) / (hi - lo) * ph;
-  const step = niceStep(hi - lo, 4);
   let svg = '';
 
   // grid + y labels
-  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) {
+  for (const v of ticks) {
     const y = Y(v).toFixed(1);
     svg += `<line x1="${m.l}" x2="${m.l + pw}" y1="${y}" y2="${y}" stroke="${C.grid}"/>` +
       `<text x="${m.l - 8}" y="${y}" dy="0.32em" text-anchor="end" class="ax">${esc(o.fmtY(v, step))}</text>`;

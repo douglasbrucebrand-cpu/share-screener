@@ -179,6 +179,7 @@ def run(dates, close, low, high, settings=None, direction="long"):
         "trades": trades,
         "bar_dates": dates,
         "series": {"close": close, "ema": [e1, e2, e3]},
+        "first_bar": slow - 1,      # first bar on which a signal could happen
     }
     if state == "in_trade":
         if phase == 1:
@@ -266,3 +267,88 @@ def analyse(dates, close, low, high, settings, today):
     if settings["timeframes"].get("daily", True):
         out["daily"] = run(dates, close, low, high, settings)
     return out
+
+
+# ---------- backtest ----------
+
+def backtest(result, cost_pct=0.0, equity_points=520):
+    """Performance of the system's trades over the whole history in `result` (from run()).
+
+    - Trades buy at the confirming bar's close and sell at the exit bar's close; money is uninvested
+      between trades. `cost_pct` is taken off each trade's return (a round trip: buying and selling).
+    - Win rate, average win/loss and profit factor use closed trades; an open trade is valued at the
+      last close for total return and drawdown, so they compare with buy-and-hold to the same date.
+    - The period starts where signals could first happen (once the slowest EMA has enough bars).
+    """
+    if result.get("state") == "insufficient" or not result.get("series"):
+        return None
+    dates, close = result["bar_dates"], result["series"]["close"]
+    n = len(close)
+    start = result.get("first_bar", 0)
+    cost = cost_pct / 100
+    idx = {d: i for i, d in enumerate(dates)}
+
+    trades = []
+    for t in result["trades"]:
+        net = (1 + t["return"]) * (1 - cost) - 1
+        trades.append(dict(t, gross=t["return"], net=net, open=False))
+    if result.get("state") == "in_trade":
+        e = result["entry"]
+        gross = close[-1] / e - 1
+        trades.append({"entry_date": result["entry_date"], "entry": e, "exit_date": None, "exit": close[-1],
+                       "gross": gross, "net": (1 + gross) * (1 - cost) - 1, "reason": "open",
+                       "bars": n - 1 - idx[result["entry_date"]], "open": True})
+
+    # bar-by-bar value of R1 in the system and in buy-and-hold
+    held = [False] * n
+    exit_cost = {}
+    for t in trades:
+        a = idx[t["entry_date"]]
+        b = idx[t["exit_date"]] if t["exit_date"] else n - 1
+        for i in range(a + 1, b + 1):
+            held[i] = True
+        # the round-trip cost is charged at the exit (an open trade is charged too, as if sold
+        # today, so its value matches its net return in the trade list)
+        exit_cost[b] = exit_cost.get(b, 0) + cost
+    sys_eq, eq = [], 1.0
+    for i in range(start, n):
+        if i > start and held[i]:
+            eq *= close[i] / close[i - 1]
+        if i in exit_cost and i > start:
+            eq *= (1 - exit_cost[i])
+        sys_eq.append(eq)
+    hold_eq = [close[i] / close[start] for i in range(start, n)]
+
+    def max_drawdown(series):
+        peak, worst = series[0], 0.0
+        for v in series:
+            peak = max(peak, v)
+            worst = min(worst, v / peak - 1)
+        return worst
+
+    closed = [t for t in trades if not t["open"]]
+    wins = [t["net"] for t in closed if t["net"] > 0]
+    losses = [t["net"] for t in closed if t["net"] <= 0]
+    years = (date.fromisoformat(dates[-1]) - date.fromisoformat(dates[start])).days / 365.25
+    step = max(1, (n - start) // equity_points)
+    keep = list(range(0, n - start, step))
+    if keep[-1] != n - start - 1:
+        keep.append(n - start - 1)
+    r = lambda x, k=5: None if x is None else round(x, k)
+    return {
+        "start": dates[start], "end": dates[-1], "years": round(years, 2), "cost_pct": cost_pct,
+        "trades": len(closed), "open_trade": any(t["open"] for t in trades),
+        "wins": len(wins), "win_rate": r(len(wins) / len(closed)) if closed else None,
+        "avg_win": r(sum(wins) / len(wins)) if wins else None,
+        "avg_loss": r(sum(losses) / len(losses)) if losses else None,
+        "profit_factor": r(sum(wins) / -sum(losses), 3) if losses and sum(losses) < 0 else None,
+        "total_return": r(sys_eq[-1] - 1), "max_drawdown": r(max_drawdown(sys_eq)),
+        "hold_return": r(hold_eq[-1] - 1), "hold_max_drawdown": r(max_drawdown(hold_eq)),
+        "time_in_market": r(sum(held[start + 1:]) / max(1, n - start - 1), 4),
+        "avg_bars": r(sum(t["bars"] for t in closed) / len(closed), 1) if closed else None,
+        "trade_list": [{"entry_date": t["entry_date"], "entry": round(t["entry"], 4), "exit_date": t["exit_date"],
+                        "exit": round(t["exit"], 4), "gross": r(t["gross"]), "net": r(t["net"]),
+                        "reason": t["reason"], "bars": t["bars"], "open": t["open"]} for t in trades],
+        "equity": {"dates": [dates[start + i] for i in keep],
+                   "system": [round(sys_eq[i], 4) for i in keep], "hold": [round(hold_eq[i], 4) for i in keep]},
+    }

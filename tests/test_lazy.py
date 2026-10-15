@@ -160,6 +160,52 @@ class Calculations(unittest.TestCase):
         self.assertEqual(cd["current"]["state"], "exited")
         self.assertEqual(lazy.chart_data(run([1, 2, 3]), d[0]), {"state": "insufficient"})
 
+    def test_backtest_one_losing_trade(self):
+        c = UP + [23, 22, 24, 25, 26, 27, 20]               # buy 25, sell 20
+        bt = lazy.backtest(run(c))
+        self.assertEqual((bt["trades"], bt["wins"], bt["win_rate"]), (1, 0, 0.0))
+        self.assertAlmostEqual(bt["total_return"], -0.2, places=5)
+        self.assertAlmostEqual(bt["avg_loss"], -0.2, places=5)
+        self.assertIsNone(bt["avg_win"])
+        # value peaked at 27/25 = 1.08 and fell to 0.80: drawdown 0.80 / 1.08 - 1
+        self.assertAlmostEqual(bt["max_drawdown"], 0.8 / 1.08 - 1, places=5)
+        # buy-and-hold from the first bar a signal could happen (bar 7, close 17) to the end (20)
+        self.assertEqual(bt["start"], days(len(c))[7])
+        self.assertAlmostEqual(bt["hold_return"], 20 / 17 - 1, places=5)
+        self.assertEqual(bt["trade_list"][0]["reason"], "trailing stop")
+
+    def test_backtest_costs_come_off_each_trade(self):
+        c = UP + [23, 22, 24, 25, 26, 27, 20]
+        bt = lazy.backtest(run(c), cost_pct=1)
+        self.assertAlmostEqual(bt["trade_list"][0]["net"], 0.8 * 0.99 - 1, places=5)
+        self.assertAlmostEqual(bt["total_return"], 0.8 * 0.99 - 1, places=5)
+
+    def test_backtest_winning_trade_and_profit_factor(self):
+        # trade 1: buy 25, sell 28.5 on a lower low (+14%); trade 2: buy 32, highest 33 -> stop 26.40,
+        # sell 25 (-21.875%). Profit factor 0.14 / 0.21875; total = 1.14 x 0.78125 - 1 (trades compound).
+        c = UP + [23, 22, 24, 25, 28, 32, 30, 29, 31, 33, 34, 28.5, 29, 31, 32, 33, 25]
+        bt = lazy.backtest(run(c))
+        self.assertEqual([(t["entry"], t["exit"], t["reason"]) for t in bt["trade_list"]],
+                         [(25, 28.5, "lower low"), (32, 25, "trailing stop")])
+        self.assertEqual((bt["trades"], bt["wins"], bt["win_rate"]), (2, 1, 0.5))
+        self.assertAlmostEqual(bt["avg_win"], 0.14, places=5)
+        self.assertAlmostEqual(bt["avg_loss"], -0.21875, places=5)
+        self.assertAlmostEqual(bt["profit_factor"], 0.14 / 0.21875, places=3)
+        self.assertAlmostEqual(bt["total_return"], 1.14 * 0.78125 - 1, places=5)
+
+    def test_backtest_open_trade_counts_at_last_close(self):
+        bt = lazy.backtest(run(UP + [23, 22, 24, 25, 26]))   # bought 25, still holding at 26
+        self.assertEqual((bt["trades"], bt["open_trade"], bt["win_rate"]), (0, True, None))
+        self.assertAlmostEqual(bt["total_return"], 26 / 25 - 1, places=5)
+        self.assertTrue(bt["trade_list"][-1]["open"])
+
+    def test_backtest_equity_curve_ends_at_total_return(self):
+        bt = lazy.backtest(run(UP + [23, 22, 24, 25, 26, 27, 20]))
+        eq = bt["equity"]
+        self.assertEqual(len(eq["dates"]), len(eq["system"]))
+        self.assertAlmostEqual(eq["system"][-1], 1 + bt["total_return"], places=3)
+        self.assertAlmostEqual(eq["hold"][-1], 1 + bt["hold_return"], places=3)
+
     def test_summary_is_small(self):
         r = lazy.summary(run(UP + [23, 22, 24, 25, 26]))
         self.assertEqual(set(r), {"state", "since", "bars", "trend", "entry", "entry_date", "phase", "stop", "date"})

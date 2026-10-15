@@ -74,11 +74,15 @@ function lazyStatus(cur, tf, ccy) {
   return t;
 }
 
+let lazyLoading = null;
+function loadLazy() {
+  return lazyLoading || (lazyLoading = fetch('data/lazy/' + encodeURIComponent(SYMBOL) + '.json', {cache: 'no-cache'})
+    .then(r => (r.ok ? r.json() : null)).catch(() => null).then(j => { LAZY = j; return j; }));
+}
+
 async function drawLazy() {
   const host = $('pricechart');
-  if (LAZY === undefined) {
-    LAZY = await fetch('data/lazy/' + encodeURIComponent(SYMBOL) + '.json', {cache: 'no-cache'}).then(r => (r.ok ? r.json() : null)).catch(() => null);
-  }
+  await loadLazy();
   const tf = view === 'lazy_w' ? 'weekly' : 'daily';
   const d = LAZY && LAZY[tf];
   const ccy = PRICES.currency;
@@ -132,6 +136,77 @@ async function drawLazy() {
     tip: i => `<b>${tf === 'weekly' ? 'Week to ' : ''}${fmtDate(dates[i])}</b>` + series.map(x =>
       `<div><i style="background:${x.color}"></i>${x.short}<span>${x.values[i] == null ? '–' : money(x.values[i], ccy)}</span></div>`).join('') +
       (at[i] ? at[i].map(w => `<div class="tip-ev">${esc(w)}</div>`).join('') : ''),
+  });
+}
+
+// ---------- lazy system backtest ----------
+let btTf = store.get('detail_bt_tf') || 'weekly';
+const pct1 = x => (x == null ? '–' : `${x >= 0 ? '+' : ''}${(x * 100).toFixed(1)}%`);
+const signed = x => (x == null ? DASH : `<span class="${x >= 0 ? 'pos' : 'neg'}">${pct1(x)}</span>`);
+
+async function drawBacktest() {
+  const box = $('backtest');
+  if (!box) return;
+  await loadLazy();
+  const all = LAZY && LAZY.backtest;
+  const b = all && all[btTf];
+  const ccy = PRICES ? PRICES.currency : ROW.currency;
+  const unit = btTf === 'weekly' ? 'weeks' : 'trading days';
+  const seg = `<div class="seg seg-bt" role="group" aria-label="Backtest timeframe">${['weekly', 'daily'].map(tf =>
+    `<button data-bt="${tf}" aria-pressed="${tf === btTf}">${tf === 'weekly' ? 'Weekly' : 'Daily'}</button>`).join('')}</div>`;
+  if (!b) {
+    box.innerHTML = `<div class="panel-h"><h3>Lazy system backtest</h3>${seg}</div>
+      <p class="dim">${LAZY ? 'Not enough price history to backtest this timeframe.' : 'The backtest appears after the next daily update.'}</p>`;
+    return;
+  }
+  const tile = (label, value, sub) => `<div class="bt-tile"><div class="lbl">${label}</div><div class="v">${value}</div>${sub ? `<div class="dim small">${sub}</div>` : ''}</div>`;
+  const beat = b.total_return != null && b.hold_return != null ? b.total_return - b.hold_return : null;
+  const trades = b.trade_list.slice().reverse();
+  box.innerHTML = `
+    <div class="panel-h"><h3>Lazy system backtest</h3>${seg}</div>
+    <p class="small">${fmtDate(b.start)} to ${fmtDate(b.end)} (${b.years.toFixed(1)} years) &middot; buy at the confirming close, sell at the exit close
+      &middot; costs ${b.cost_pct}% per trade</p>
+    <div class="bt-tiles">
+      ${tile('Total return', signed(b.total_return), `buy and hold ${pct1(b.hold_return)}`)}
+      ${tile('Max drawdown', `<span class="neg">${pct1(b.max_drawdown)}</span>`, `buy and hold ${pct1(b.hold_max_drawdown)}`)}
+      ${tile('Trades', `${b.trades}${b.open_trade ? ' <span class="dim small">+ 1 open</span>' : ''}`, b.avg_bars != null ? `held ${Math.round(b.avg_bars)} ${unit} on average` : '')}
+      ${tile('Win rate', b.win_rate == null ? '–' : `${Math.round(b.win_rate * 100)}%`, `${b.wins} of ${b.trades} closed trades`)}
+      ${tile('Average win', signed(b.avg_win))}
+      ${tile('Average loss', signed(b.avg_loss))}
+      ${tile('Profit factor', b.profit_factor == null ? (b.wins ? '∞ <span class="dim small">no losses</span>' : '–') : b.profit_factor.toFixed(2), 'total won ÷ total lost')}
+      ${tile('Time in the market', `${Math.round(b.time_in_market * 100)}%`)}
+    </div>
+    <p class="small bt-verdict">${beat == null ? '' : (() => {
+      const grow = x => Math.round(100 * (1 + x)).toLocaleString('en-GB');
+      const better = beat >= 0 ? '<b class="pos">The system did better.</b>' : '<b class="neg">Buy and hold did better.</b>';
+      const fell = b.max_drawdown > b.hold_max_drawdown ? ` The system's worst fall was smaller (${pct1(b.max_drawdown)} against ${pct1(b.hold_max_drawdown)}).`
+        : ` The system's worst fall was larger (${pct1(b.max_drawdown)} against ${pct1(b.hold_max_drawdown)}).`;
+      return `Over this period, 100 invested grew to <b>${grow(b.total_return)}</b> with the system and <b>${grow(b.hold_return)}</b> with buy and hold. ${better}${fell}`;
+    })()}</p>
+    <div id="btlegend"></div>
+    <div class="chart" id="btchart"></div>
+    <details class="small"${trades.length <= 12 ? ' open' : ''}><summary>Trade list (${trades.length})</summary><div class="tbl"><table class="plain">
+      <thead><tr><th>Entry</th><th>Price</th><th>Exit</th><th>Price</th><th>Return</th><th>Held</th><th>Exit reason</th></tr></thead>
+      <tbody>${trades.map(t => `<tr${t.open ? ' class="bt-open"' : ''}><td>${fmtDate(t.entry_date)}</td><td>${money(t.entry, ccy)}</td>
+        <td>${t.open ? '<span class="b g">open</span>' : fmtDate(t.exit_date)}</td><td>${money(t.exit, ccy)}</td>
+        <td>${signed(t.net)}</td><td>${t.bars} ${btTf === 'weekly' ? 'wk' : 'd'}</td>
+        <td>${t.open ? 'still in the trade (valued at the latest close)' : esc(t.reason)}</td></tr>`).join('')}</tbody>
+    </table></div></details>
+    <p class="dim small">Past results of these rules on dividend-adjusted closing prices, with no slippage. Not a forecast,
+      and a handful of trades is weak evidence either way.</p>`;
+
+  const eq = b.equity;
+  const series = [
+    {name: 'Lazy system', short: 'System', color: C.value, values: eq.system.map(v => v * 100), width: 2},
+    {name: 'Buy and hold', short: 'Hold', color: C.bench, values: eq.hold.map(v => v * 100)},
+  ];
+  $('btlegend').innerHTML = legend(series);
+  lineChart($('btchart'), {
+    title: `${SYMBOL} lazy system (${btTf}) against buy and hold: value of 100 invested, log scale`,
+    dates: eq.dates, series, height: 220, log: true,
+    fmtY: v => (v >= 1000 ? Math.round(v).toLocaleString('en-GB') : +v.toPrecision(3)) + '',
+    tip: i => `<b>${fmtDate(eq.dates[i])}</b>` + series.map(x =>
+      `<div><i style="background:${x.color}"></i>${x.name}<span>${x.values[i].toFixed(0)}</span></div>`).join(''),
   });
 }
 
@@ -260,6 +335,8 @@ function render(data) {
       ${priceTable()}
     </section>
 
+    <section class="panel" id="backtest"></section>
+
     <div class="cols">
       <section class="panel">
         ${rulesTable('Momentum', r.mom, r.breakdown?.momentum, 'Needs at least 60 days of prices.')}
@@ -292,6 +369,13 @@ function render(data) {
     $('content').querySelectorAll('.seg-view button').forEach(x => x.setAttribute('aria-pressed', x.dataset.view === view));
     drawPrice();
   });
+  $('backtest').addEventListener('click', e => {
+    const b = e.target.closest('[data-bt]');
+    if (!b) return;
+    btTf = b.dataset.bt; store.set('detail_bt_tf', btTf);
+    drawBacktest();
+  });
+  drawBacktest();
   $('simbuy').addEventListener('click', () => Portfolio.buy(ROW, LATEST));
   $('tagcall').addEventListener('click', () => Calls.openTag({symbol: SYMBOL, name: ROW.name}, null));
   Calls.renderForSymbol($('callsbox'), LATEST, SYMBOL);
@@ -359,6 +443,6 @@ function fail(msg) {
     if (Math.abs(window.innerWidth - lastW) < 20) return;
     lastW = window.innerWidth;
     clearTimeout(window._rz);
-    window._rz = setTimeout(() => { drawPrice(); drawHistory(); }, 150);
+    window._rz = setTimeout(() => { drawPrice(); drawHistory(); drawBacktest(); }, 150);
   });
 })();

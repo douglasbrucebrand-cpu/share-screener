@@ -566,7 +566,10 @@ Three exponential moving averages of the closing price: **EMA15, EMA30, EMA60**.
     most recent **swing low**: a bar whose low is lower than the 2 bars either side of it. A swing low only
     counts once those 2 later bars have closed, so nothing uses information from the future.
 
-The weekly version ignores the current, unfinished week. Prices are dividend-adjusted (as for the scores), so
+The weekly version ignores the current, unfinished week. **Price glitches:** Yahoo sometimes records a single JSE
+day in rand instead of cents (Standard Bank and Satrix 40 on 25/04/2025, Pepkor on 10/01/2025). The update
+corrects such one-day slips (or drops a one-day glitch it can't correct) and notes it in the update's log, so
+they don't fake a crash on the charts or in the signals. Prices are dividend-adjusted (as for the scores), so
 EMA levels can differ a little from a chart site showing unadjusted prices, mostly for high-dividend shares.
 
 ### On the site
@@ -584,6 +587,14 @@ EMA levels can differ a little from a chart site showing unadjusted prices, most
   **●** trigger, **×** cancelled, and a dashed line for the **current stop** if a trade is open. Hover for
   exact values and what happened on that bar. A status line above the chart sums up the current state.
   The EMAs are worked out from 10 years of prices, so they're properly settled even at the left of the chart.
+- **Backtest** (detail page, under the chart): the rules run over all the history available (up to 10 years),
+  weekly or daily. Shows total return against **buy and hold over the same period**, maximum drawdown (the worst
+  fall from a peak) for both, number of trades, win rate, average win and loss, profit factor (total won ÷ total
+  lost), time in the market, a chart of 100 invested in each (log scale), and the full trade list.
+  - Trades buy at the confirming close and sell at the exit close; money is uninvested between trades.
+  - Win rate and averages use closed trades. An open trade counts at today's price in the total and drawdown.
+  - `cost_per_trade_pct` in `lazy_settings.json` (default 0) is taken off every trade, covering buying and selling.
+  - These are past results on closing prices with no slippage. A handful of trades is weak evidence.
 
 ### Settings
 

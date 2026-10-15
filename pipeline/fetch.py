@@ -92,6 +92,57 @@ def _extract(df, symbol):
     ]
 
 
+def repair_glitches(rows, symbol=""):
+    """Fix one-day price glitches in Yahoo's history.
+
+    Yahoo occasionally records a single JSE day in rand instead of cents (or the reverse), so the
+    price "falls 99%" for a day and jumps straight back. Left in, that fakes a crash: it shows on
+    charts and triggers the lazy system's stops. A day that jumps by a factor of 5+ and reverts
+    the next day is corrected by x100 or /100 if that puts it back in line, otherwise dropped.
+    The latest day (with no next day yet) is only corrected if it's an exact x100 or /100 slip.
+    Returns (rows, notes).
+    """
+    rows, notes = list(rows), []
+
+    def scaled(r, f):
+        return (r[0], r[1] * f, r[2]) + tuple(x * f for x in r[3:])
+
+    def in_line(x, ref):
+        return 0.75 < x / ref < 1.33
+
+    prev = 0                                   # index of the last good day
+    for i in range(1, len(rows)):
+        p, c = rows[prev][1], rows[i][1]
+        if p <= 0 or c <= 0:
+            prev = i
+            continue
+        jump = c / p
+        last = i == len(rows) - 1
+        if last:
+            if not (0.005 < jump < 0.02 or 50 < jump < 200):
+                prev = i
+                continue
+        else:
+            nx = rows[i + 1][1]
+            if not ((jump > 5 or jump < 0.2) and nx > 0 and (nx / c > 5 or nx / c < 0.2) and 0.5 < nx / p < 2):
+                prev = i
+                continue
+        for f in (100, 0.01):
+            if in_line(c * f, p):
+                rows[i] = scaled(rows[i], f)
+                notes.append(f"{symbol} {rows[i][0]}: corrected a x{'100' if f == 100 else '1/100'} price slip")
+                prev = i
+                break
+        else:
+            if not last:
+                notes.append(f"{symbol} {rows[i][0]}: dropped a one-day price glitch ({p:g} -> {c:g} -> {rows[i + 1][1]:g})")
+                rows[i] = None
+            else:
+                prev = i
+    rows = [r for r in rows if r is not None]
+    return rows, notes
+
+
 def fetch_prices(symbols, attempts=4, base_delay=5, period="2y"):
     """Batch-download daily closes, volume, lows and highs (`period` of history, e.g. "10y").
 
@@ -116,6 +167,9 @@ def fetch_prices(symbols, attempts=4, base_delay=5, period="2y"):
         for s in pending:
             rows = _extract(df, s)
             if rows:
+                rows, notes = repair_glitches(rows, s)
+                for note in notes:
+                    print("  " + note)
                 got[s] = rows
             else:
                 still.append(s)
