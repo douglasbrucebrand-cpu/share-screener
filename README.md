@@ -575,6 +575,10 @@ EMA levels can differ a little from a chart site showing unadjusted prices, most
   it's been in that state (e.g. `27w`, `71d`, or `new`). Hover over a state for its date, entry price and
   current stop. Click the column heading to sort (in trade first, newest first).
 - **Filters** above the tables: weekly state, daily state and weekly trend. They're remembered in your browser.
+- **Signals tab:** "what do I need to look at this week". New **triggers**, **confirmed** entries and **exits**
+  (plus cancelled triggers) over the last 4 weeks (weekly) and 5 trading days (daily), newest first. **Latest**
+  marks signals on the most recent bar, i.e. since the last update. Exits show how the trade did. Choose
+  *All watchlists* or one tab. Each watchlist tab also shows a one-line summary with a link to it.
 
 ### Settings
 

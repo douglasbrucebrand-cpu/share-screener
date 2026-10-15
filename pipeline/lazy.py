@@ -135,8 +135,8 @@ def run(dates, close, low, high, settings=None, direction="long"):
             if phase == 1:
                 stop = extreme * (1 - stop_pct) if up else extreme * (1 + stop_pct)
                 if beyond(stop, c):        # close fell through the trailing stop
-                    _close_trade(trades, dates, entry_i, entry, t, c, "trailing stop", up)
-                    go("exited", t, reason="trailing stop", stop=stop)
+                    tr = _close_trade(trades, dates, entry_i, entry, t, c, "trailing stop", up)
+                    go("exited", t, reason="trailing stop", stop=stop, entry=entry, entry_date=dates[entry_i], ret=tr["return"])
                     continue
                 extreme = max(extreme, c) if up else min(extreme, c)
                 new_stop = extreme * (1 - stop_pct) if up else extreme * (1 + stop_pct)
@@ -146,8 +146,9 @@ def run(dates, close, low, high, settings=None, direction="long"):
             else:
                 level = (low if up else high)[last_swing] if last_swing is not None else None
                 if level is not None and beyond(level, c):
-                    _close_trade(trades, dates, entry_i, entry, t, c, "lower low" if up else "higher high", up)
-                    go("exited", t, reason="lower low" if up else "higher high", stop=level)
+                    reason = "lower low" if up else "higher high"
+                    tr = _close_trade(trades, dates, entry_i, entry, t, c, reason, up)
+                    go("exited", t, reason=reason, stop=level, entry=entry, entry_date=dates[entry_i], ret=tr["return"])
                     continue
             continue
 
@@ -156,7 +157,7 @@ def run(dates, close, low, high, settings=None, direction="long"):
                 go("cancelled", t)
             elif beyond(c, pc) and beyond(c, e1[t]):   # higher close, still beyond EMA15: confirmed
                 entry, entry_i, extreme, phase = c, t, c, 1
-                go("in_trade", t, entry=c)
+                go("in_trade", t, entry=c, stop=c * (1 - stop_pct) if up else c * (1 + stop_pct))
             continue
 
         # no_setup / exited / cancelled: look for a new trigger
@@ -176,6 +177,7 @@ def run(dates, close, low, high, settings=None, direction="long"):
         "date": dates[last],
         "events": events,
         "trades": trades,
+        "bar_dates": dates,
     }
     if state == "in_trade":
         if phase == 1:
@@ -188,8 +190,10 @@ def run(dates, close, low, high, settings=None, direction="long"):
 
 def _close_trade(trades, dates, entry_i, entry, t, price, reason, up):
     ret = price / entry - 1 if up else entry / price - 1
-    trades.append({"entry_date": dates[entry_i], "entry": entry, "exit_date": dates[t], "exit": price,
-                   "return": ret, "reason": reason, "bars": t - entry_i})
+    trade = {"entry_date": dates[entry_i], "entry": entry, "exit_date": dates[t], "exit": price,
+             "return": ret, "reason": reason, "bars": t - entry_i}
+    trades.append(trade)
+    return trade
 
 
 def summary(result):
@@ -201,6 +205,34 @@ def summary(result):
             out[k] = round(out[k], 4)
     if result.get("state") == "insufficient":
         out["bars_available"] = result.get("bars_available")
+    return out
+
+
+FEED_STATES = ("triggered", "in_trade", "exited", "cancelled")
+
+
+def recent_events(result, symbol, timeframe, bars):
+    """Signals (triggers, confirmations, exits, cancellations) on the last `bars` bars of a result.
+
+    Each event says whether it happened on the very latest bar ("latest"), i.e. since the last run.
+    """
+    events = result.get("events") or []
+    if not events or not result.get("bar_dates"):
+        return []
+    window = result["bar_dates"][-bars:]
+    first, last = window[0], window[-1]
+    out = []
+    for e in events:
+        if e["state"] in FEED_STATES and first <= e["date"] <= last:
+            item = {"symbol": symbol, "tf": timeframe, "state": e["state"], "date": e["date"],
+                    "close": round(e["close"], 4), "latest": e["date"] == last}
+            for k in ("entry", "stop", "ret"):
+                if e.get(k) is not None:
+                    item[k] = round(e[k], 4) if k != "ret" else round(e[k], 5)
+            for k in ("reason", "entry_date"):
+                if e.get(k):
+                    item[k] = e[k]
+            out.append(item)
     return out
 
 

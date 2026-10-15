@@ -195,20 +195,28 @@ def refresh_prices(symbols, cache, years=2):
     return errors, full
 
 
+FEED_BARS = {"weekly": 4, "daily": 5}   # signals feed: the last 4 weeks and 5 trading days
+
+
 def lazy_signals(symbols, full, settings, run_date, previous):
     """Simon Brown's lazy system for each share: weekly and daily state (pipeline/lazy.py).
 
-    A share whose prices failed to download keeps its previous result, marked as not updated.
+    Returns ({symbol: {timeframe: summary}}, feed) where feed lists recent triggers, confirmations,
+    exits and cancellations. A share whose prices failed to download keeps its previous result,
+    marked as not updated (and adds nothing to the feed).
     """
-    out = {}
+    out, feed = {}, []
     for s in symbols:
         if s in full and full[s]["dates"]:
             h = full[s]
             res = lazy.analyse(h["dates"], h["close"], h["low"], h["high"], settings, run_date)
             out[s] = {tf: lazy.summary(r) for tf, r in res.items()}
+            for tf, r in res.items():
+                feed += lazy.recent_events(r, s, tf, FEED_BARS[tf])
         elif (previous.get(s) or {}).get("lazy"):
             out[s] = dict(previous[s]["lazy"], stale=True)
-    return out
+    feed.sort(key=lambda e: (e["tf"] != "weekly", e["date"], e["symbol"]), reverse=False)
+    return out, feed
 
 
 def valuation(f, price_ccy, fx):
@@ -350,7 +358,8 @@ def main():
     rows = {s: score_ticker(s, fcache, fx, price_errors.get(s)) for s in symbols}
     run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     previous = load_json(os.path.join(DATA, "latest.json"), {}).get("tickers", {})
-    for s, sig in lazy_signals(symbols, full_history, lazy_settings, run_date, previous).items():
+    lazy_by_symbol, lazy_feed = lazy_signals(symbols, full_history, lazy_settings, run_date, previous)
+    for s, sig in lazy_by_symbol.items():
         rows[s]["lazy"] = sig
     price_dates = [r["price_date"] for r in rows.values() if r.get("price_date")]
     latest = {
@@ -362,6 +371,7 @@ def main():
         "benchmarks": wl["benchmarks"],
         "tracked": wl["tracked"],
         "lazy_settings": lazy_settings,
+        "lazy_feed": lazy_feed,
         "tickers": rows,
         "errors": [{"symbol": s, "stage": k, "message": v} for s, r in rows.items() for k, v in r["errors"].items()],
     }

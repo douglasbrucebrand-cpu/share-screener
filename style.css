@@ -143,6 +143,19 @@ select.txt{appearance:auto}
 .lz-tf{color:var(--muted);font-size:10px;font-weight:700;width:10px}
 .lz .b{font-size:10px}
 
+.sig-summary{flex-basis:100%;font-size:13px;color:var(--text);margin-bottom:2px}
+.sig-day{margin-bottom:16px}
+.sig-day h4{font-size:13px;margin:0 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.sig-kind{margin:0 0 10px}
+.sig-kind.muted{opacity:.75}
+.sig-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.sig-list{list-style:none;margin:0;padding:0}
+.sig-item{padding:6px 0;border-bottom:1px solid var(--line)}
+.sig-item:last-child{border-bottom:none}
+.sig-item .score{font-size:11px;padding:0 6px;min-width:0;margin-left:4px}
+.sig-item .b{margin-left:4px}
+.sig-cols .panel{margin-bottom:18px}
+
 /* ---------- analyst calls ---------- */
 .callbadge{font-size:12px;font-weight:600;white-space:nowrap}
 .callbadge.up{color:var(--good)} .callbadge.down{color:var(--bad)} .callbadge.flat{color:var(--muted)}

@@ -19,6 +19,10 @@ function ensureContainers() {
     const d = document.createElement('div'); d.id = 'wlbar'; d.className = 'wlbar';
     document.getElementById('groups').before(d);
   }
+  if (!document.getElementById('signals')) {
+    const d = document.createElement('div'); d.id = 'signals'; d.hidden = true;
+    document.getElementById('groups').after(d);
+  }
   if (!document.getElementById('calls')) {
     const d = document.createElement('div'); d.id = 'calls'; d.hidden = true;
     document.getElementById('groups').after(d);
@@ -30,9 +34,10 @@ function ensureContainers() {
 }
 
 // The paper portfolio is an extra tab after the watchlists.
+const SIGNALS_TAB = {id: 'signals', name: 'Signals'};
 const CALLS_TAB = {id: 'calls', name: 'Calls'};
 const PORTFOLIO_TAB = {id: 'portfolio', name: 'Paper portfolio'};
-const allTabs = () => [...DATA.tabs, CALLS_TAB, PORTFOLIO_TAB];
+const allTabs = () => [...DATA.tabs, SIGNALS_TAB, CALLS_TAB, PORTFOLIO_TAB];
 
 let DATA = null;
 let activeTab = null;
@@ -181,14 +186,17 @@ function renderTab() {
     `<button role="tab" data-tab="${esc(t.id)}" aria-selected="${t.id === tab.id}">${esc(t.name)}</button>`).join('');
 
   // paper portfolio tab: hide the screener parts, show the portfolio
-  const isPf = tab.id === PORTFOLIO_TAB.id, isCalls = tab.id === CALLS_TAB.id, special = isPf || isCalls;
+  const isPf = tab.id === PORTFOLIO_TAB.id, isCalls = tab.id === CALLS_TAB.id, isSig = tab.id === SIGNALS_TAB.id;
+  const special = isPf || isCalls || isSig;
   for (const id of ['changes', 'topflags', 'wlbar', 'lazybar', 'groups', 'legend']) $(id).hidden = special;
   const intro = document.querySelector('main > .note');
   if (intro) intro.hidden = special;
   $('portfolio').hidden = !isPf;
   $('calls').hidden = !isCalls;
+  $('signals').hidden = !isSig;
   if (isPf) { Portfolio.render($('portfolio'), DATA); return; }
   if (isCalls) { Calls.renderCallsTab($('calls'), DATA); return; }
+  if (isSig) { Lazy.renderSignalsTab($('signals'), DATA); return; }
 
   $('changes').innerHTML = changesHtml(tab.id);
 
@@ -208,7 +216,7 @@ function renderTab() {
   $('wlbar').innerHTML = Watchlist.barHtml();
   const head = headHtml();
   const waiting = Watchlist.isPending() ? 'being added: scores appear after the update finishes (about 2 minutes)' : 'not fetched yet: run the screener';
-  $('lazybar').innerHTML = Lazy.filterBar();
+  $('lazybar').innerHTML = Lazy.summaryLine(tab, DATA) + Lazy.filterBar();
   $('groups').innerHTML = tab.groups.map(g => {
     const all = g.tickers.map(s => T[s] || {symbol: s, name: '', errors: {prices: waiting}});
     const rows = sortRows(all.filter(Lazy.matches));
@@ -315,12 +323,12 @@ fetch('data/latest.json', {cache: 'no-cache'})
 // An older cached index.html may not load the shared scripts; fetch any that are missing.
 (function loadMissing() {
   const missing = [];
-  if (typeof fmtDate === 'undefined') missing.push('common.js?v=21');
-  if (typeof lineChart === 'undefined') missing.push('chart.js?v=21');
-  if (typeof Portfolio === 'undefined') missing.push('portfolio.js?v=21');
-  if (typeof Watchlist === 'undefined') missing.push('watchlist.js?v=21');
-  if (typeof Calls === 'undefined') missing.push('calls.js?v=21');
-  if (typeof Lazy === 'undefined') missing.push('lazy.js?v=21');
+  if (typeof fmtDate === 'undefined') missing.push('common.js?v=23');
+  if (typeof lineChart === 'undefined') missing.push('chart.js?v=23');
+  if (typeof Portfolio === 'undefined') missing.push('portfolio.js?v=23');
+  if (typeof Watchlist === 'undefined') missing.push('watchlist.js?v=23');
+  if (typeof Calls === 'undefined') missing.push('calls.js?v=23');
+  if (typeof Lazy === 'undefined') missing.push('lazy.js?v=23');
   (function next() {
     if (!missing.length) return boot();
     const sc = document.createElement('script');

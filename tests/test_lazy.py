@@ -130,6 +130,22 @@ class Calculations(unittest.TestCase):
             seen = [e for e in full["events"] if e["date"] <= days(cut)[-1]]
             self.assertEqual(part["events"], seen, f"differs when cut at bar {cut}")
 
+    def test_feed_picks_recent_signals_and_marks_the_latest_bar(self):
+        r = run(UP + [23, 22, 24, 25, 26, 27, 20])        # trigger 24, entry 25, exit 20 on the last bar
+        feed = lazy.recent_events(r, "XYZ", "daily", 3)    # last 3 bars: 26, 27, 20
+        self.assertEqual([(e["state"], e["close"], e["latest"]) for e in feed], [("exited", 20, True)])
+        ex = feed[0]
+        self.assertEqual((ex["symbol"], ex["tf"], ex["reason"], ex["entry"]), ("XYZ", "daily", "trailing stop", 25))
+        self.assertAlmostEqual(ex["ret"], 20 / 25 - 1, places=5)
+        wide = lazy.recent_events(r, "XYZ", "daily", 6)    # now includes the trigger and the entry
+        self.assertEqual([e["state"] for e in wide], ["triggered", "in_trade", "exited"])
+        self.assertEqual([e["latest"] for e in wide], [False, False, True])
+        self.assertAlmostEqual(wide[1]["stop"], 25 * 0.8)  # a new entry shows its starting stop
+
+    def test_feed_leaves_out_phase_changes(self):
+        r = run(UP + [23, 22, 24, 25, 28, 32, 30])
+        self.assertNotIn("phase_2", [e["state"] for e in lazy.recent_events(r, "X", "daily", 10)])
+
     def test_summary_is_small(self):
         r = lazy.summary(run(UP + [23, 22, 24, 25, 26]))
         self.assertEqual(set(r), {"state", "since", "bars", "trend", "entry", "entry_date", "phase", "stop", "date"})
