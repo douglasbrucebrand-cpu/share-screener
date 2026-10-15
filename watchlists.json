@@ -19,7 +19,8 @@
       "groups": [
         {"name": "JSE", "tickers": ["NPN.JO", "PRX.JO", "SBK.JO", "FSR.JO", "CPI.JO", "NED.JO", "ABG.JO", "MTN.JO", "PPH.JO"]},
         {"name": "Matt", "tickers": ["MTN.JO", "PRX.JO", "GOOG", "MSFT"]},
-        {"name": "Markets", "tickers": ["MSCI", "STX40.JO"]}
+        {"name": "Markets", "tickers": ["MSCI", "STX40.JO"]},
+        {"name": "Tech", "tickers": ["NVDA"]}
       ]
     }
   ],
