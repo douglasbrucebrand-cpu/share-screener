@@ -579,6 +579,11 @@ EMA levels can differ a little from a chart site showing unadjusted prices, most
   (plus cancelled triggers) over the last 4 weeks (weekly) and 5 trading days (daily), newest first. **Latest**
   marks signals on the most recent bar, i.e. since the last update. Exits show how the trade did. Choose
   *All watchlists* or one tab. Each watchlist tab also shows a one-line summary with a link to it.
+- **Detail page chart:** choose **Lazy weekly** or **Lazy daily** above the price chart (next to the usual
+  *20/50/100-day* view) to see the price with EMA15/30/60 and the signals: **▲** entry, **▼** exit,
+  **●** trigger, **×** cancelled, and a dashed line for the **current stop** if a trade is open. Hover for
+  exact values and what happened on that bar. A status line above the chart sums up the current state.
+  The EMAs are worked out from 10 years of prices, so they're properly settled even at the left of the chart.
 
 ### Settings
 

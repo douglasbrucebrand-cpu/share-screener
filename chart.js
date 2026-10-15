@@ -5,6 +5,7 @@
 const C = {price: '#3987e5', s20: '#d95926', s50: '#199e70', s100: '#c98500',
            composite: '#3987e5', mom: '#d95926', fund: '#199e70',
            value: '#3987e5', bench: '#d95926',
+           good: '#3fb950', bad: '#e5534b', warn: '#d9a334',
            volume: '#3a4552', grid: '#232b36', axis: '#8b98a8', panel: '#161c24'};
 
 function compact(x) {
@@ -21,7 +22,9 @@ function niceStep(span, n) {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // ---------- generic line chart (+ optional volume panel underneath, sharing the date axis) ----------
-// o = {dates, series:[{name, color, values, width}], yMin, yMax, fmtY, height, volume, tip(i)}
+// o = {dates, series:[{name, color, values, width}], yMin, yMax, fmtY, height, volume, tip(i),
+//      markers:[{i, kind: 'entry'|'exit'|'trigger'|'cancelled', title}],  (placed on series[0])
+//      lines:[{y, from, label, color}]}                                   (dashed level, e.g. a stop)
 function lineChart(host, o) {
   const n = o.dates.length;
   const W = Math.max(280, host.clientWidth);
@@ -91,6 +94,30 @@ function lineChart(host, o) {
       pen = true;
     });
     svg += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.width || 1.5}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+
+  // dashed levels (e.g. a trailing stop) from bar `from` to the right-hand edge
+  for (const ln of o.lines || []) {
+    if (ln.y == null || ln.y < lo || ln.y > hi) continue;
+    const y = Y(ln.y).toFixed(1), x0 = X(Math.max(0, ln.from || 0));
+    svg += `<line x1="${x0.toFixed(1)}" x2="${m.l + pw}" y1="${y}" y2="${y}" stroke="${ln.color || C.axis}" stroke-width="1.5" stroke-dasharray="5 4"/>` +
+      `<text x="${(m.l + pw - 4).toFixed(1)}" y="${(Y(ln.y) - 5).toFixed(1)}" text-anchor="end" class="ax lbl">${esc(ln.label || '')}</text>`;
+  }
+
+  // signal markers on the first series: ▲ entry (below the line), ▼ exit (above), ● trigger, × cancelled
+  for (const mk of o.markers || []) {
+    const v = o.series[0].values[mk.i];
+    if (v == null) continue;
+    const x = X(mk.i), y = Y(v), t = `<title>${esc(mk.title || mk.kind)}</title>`;
+    if (mk.kind === 'entry') {
+      svg += `<path d="M${x},${y + 6} l6,10 h-12 z" fill="${C.good}" stroke="${C.panel}" stroke-width="1.5">${t}</path>`;
+    } else if (mk.kind === 'exit') {
+      svg += `<path d="M${x},${y - 6} l6,-10 h-12 z" fill="${C.bad}" stroke="${C.panel}" stroke-width="1.5">${t}</path>`;
+    } else if (mk.kind === 'trigger') {
+      svg += `<circle cx="${x}" cy="${y}" r="5" fill="${C.panel}" stroke="${C.warn}" stroke-width="2.5">${t}</circle>`;
+    } else {
+      svg += `<path d="M${x - 4},${y - 4} l8,8 m0,-8 l-8,8" stroke="${C.axis}" stroke-width="2">${t}</path>`;
+    }
   }
 
   // direct labels at the right-hand end, nudged apart so they don't overlap

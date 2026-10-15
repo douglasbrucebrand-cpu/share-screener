@@ -217,7 +217,13 @@ label.check{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:10
 .panel h3{font-size:14px;margin:0 0 10px;font-weight:600}
 .panel-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .panel-h h3{margin:0}
-.seg{margin-left:auto;display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg-view{margin-left:auto}
+.lazystatus{margin:8px 0 0;color:var(--text)}
+.lazystatus:empty{display:none}
+.marker-key .mk{display:inline-block;margin-right:5px;font-weight:700;color:var(--muted)}
+.marker-key .mk.up{color:var(--good)} .marker-key .mk.down{color:var(--bad)} .marker-key .mk.trig{color:var(--warn)}
+.tip .tip-ev{color:var(--text);margin-top:5px;max-width:240px;white-space:normal}
 .seg button{font:inherit;font-size:12px;background:none;border:none;color:var(--muted);padding:5px 11px;cursor:pointer}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button[aria-pressed=true]{background:var(--chip);color:var(--text);font-weight:600}

@@ -206,6 +206,7 @@ def lazy_signals(symbols, full, settings, run_date, previous):
     marked as not updated (and adds nothing to the feed).
     """
     out, feed = {}, []
+    chart_dir = os.path.join(DATA, "lazy")
     for s in symbols:
         if s in full and full[s]["dates"]:
             h = full[s]
@@ -213,9 +214,21 @@ def lazy_signals(symbols, full, settings, run_date, previous):
             out[s] = {tf: lazy.summary(r) for tf, r in res.items()}
             for tf, r in res.items():
                 feed += lazy.recent_events(r, s, tf, FEED_BARS[tf])
+            # Chart file for the detail page: the same 2 years as the price files.
+            since = (date.fromisoformat(h["dates"][-1]) - timedelta(days=730)).isoformat()
+            save_json(os.path.join(chart_dir, f"{s}.json"), {
+                "symbol": s, "updated_at": now_iso(),
+                "settings": {k: settings[k] for k in ("ema", "trailing_stop_pct", "swing_lookback")},
+                **{tf: lazy.chart_data(r, since) for tf, r in res.items()},
+            })
         elif (previous.get(s) or {}).get("lazy"):
             out[s] = dict(previous[s]["lazy"], stale=True)
     feed.sort(key=lambda e: (e["tf"] != "weekly", e["date"], e["symbol"]), reverse=False)
+    # Tidy up chart files of shares no longer on a watchlist.
+    if os.path.isdir(chart_dir):
+        for name in os.listdir(chart_dir):
+            if name.endswith(".json") and name[:-5] not in symbols:
+                os.remove(os.path.join(chart_dir, name))
     return out, feed
 
 

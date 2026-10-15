@@ -6,7 +6,12 @@ const STALE_DAYS = 3;
 const SYMBOL = (new URLSearchParams(location.search).get('s') || '').toUpperCase();
 
 const RANGES = [['3M', 63], ['6M', 126], ['1Y', 252], ['2Y', Infinity]];
+const WEEKS = {'3M': 13, '6M': 26, '1Y': 52, '2Y': Infinity};
+// Which averages the price chart shows: the screener's 20/50/100-day, or the lazy system's EMAs.
+const VIEWS = [['sma', '20/50/100-day'], ['lazy_w', 'Lazy weekly'], ['lazy_d', 'Lazy daily']];
 let range = store.get('detail_range') || '1Y';
+let view = store.get('detail_view') || 'lazy_w';
+let LAZY = undefined;   // data/lazy/<ticker>.json once loaded (null if there isn't one)
 let PRICES = null, ROW = null, HIST = [], LATEST = null;
 
 // ---------- small helpers ----------
@@ -25,6 +30,8 @@ function smaSeries(c, n) {
 function drawPrice() {
   const host = $('pricechart');
   if (!host || !PRICES) return;
+  if (view !== 'sma') return drawLazy();
+  $('lazystatus').innerHTML = '';
   const N = RANGES.find(r => r[0] === range)[1];
   const c = PRICES.close, start = Math.max(0, c.length - N);
   const full = {s20: smaSeries(c, 20), s50: smaSeries(c, 50), s100: smaSeries(c, 100)};
@@ -45,6 +52,86 @@ function drawPrice() {
     tip: i => `<b>${fmtDate(dates[i])}</b>` + series.map(s =>
       `<div><i style="background:${s.color}"></i>${s.short}<span>${s.values[i] == null ? '–' : money(s.values[i], ccy)}</span></div>`).join('') +
       `<div><i style="background:${C.volume}"></i>Volume<span>${compact(vol[i])}</span></div>`,
+  });
+}
+
+// ---------- lazy system chart (price + EMA15/30/60 + signals + stop) ----------
+const LZ_LABEL = {in_trade: 'In trade', triggered: 'Triggered', exited: 'Exited', cancelled: 'Cancelled',
+  no_setup: 'No setup', insufficient: 'Not enough history'};
+
+function lazyStatus(cur, tf, ccy) {
+  if (!cur) return '';
+  const unit = tf === 'weekly' ? 'week' : 'trading day';
+  const bars = cur.bars != null ? ` (${cur.bars === 0 ? 'this ' + unit : cur.bars + ' ' + unit + (cur.bars === 1 ? '' : 's')})` : '';
+  let t = `<b>${tf === 'weekly' ? 'Weekly' : 'Daily'}:</b> ${LZ_LABEL[cur.state] || cur.state}` +
+    (cur.since ? ` since ${fmtDate(cur.since)}${bars}` : '') +
+    (cur.trend ? ` &middot; trend <span class="${cur.trend === 'bullish' ? 'pos' : 'neg'}">${cur.trend === 'bullish' ? '▲ bullish' : '▼ bearish'}</span>` : '');
+  if (cur.state === 'in_trade') {
+    t += ` &middot; entry ${money(cur.entry, ccy)} on ${fmtDate(cur.entry_date)}`;
+    if (cur.stop != null) t += ` &middot; ${cur.phase === 2 ? 'exit below swing low' : 'trailing stop'} ${money(cur.stop, ccy)}`;
+  }
+  if (cur.state === 'triggered') t += ' &middot; waiting for a higher close to confirm';
+  return t;
+}
+
+async function drawLazy() {
+  const host = $('pricechart');
+  if (LAZY === undefined) {
+    LAZY = await fetch('data/lazy/' + encodeURIComponent(SYMBOL) + '.json', {cache: 'no-cache'}).then(r => (r.ok ? r.json() : null)).catch(() => null);
+  }
+  const tf = view === 'lazy_w' ? 'weekly' : 'daily';
+  const d = LAZY && LAZY[tf];
+  const ccy = PRICES.currency;
+  if (!d || !d.dates) {
+    $('pricelegend').innerHTML = '';
+    $('lazystatus').innerHTML = '';
+    host.innerHTML = `<p class="dim">${LAZY ? 'Not enough price history for the lazy system yet.' : 'The lazy-system chart appears after the next daily update.'}</p>`;
+    return;
+  }
+  const N = tf === 'weekly' ? WEEKS[range] : RANGES.find(r => r[0] === range)[1];
+  const start = Math.max(0, d.dates.length - N);
+  const cut = a => a.slice(start);
+  const dates = cut(d.dates);
+  const [f, m, s] = LAZY.settings.ema;
+  const series = [
+    {name: tf === 'weekly' ? 'Weekly close' : 'Price', short: 'Price', color: C.price, values: cut(d.close), width: 2},
+    {name: `EMA${f}`, short: `EMA${f}`, color: C.s20, values: cut(d.ema[0])},
+    {name: `EMA${m}`, short: `EMA${m}`, color: C.s50, values: cut(d.ema[1])},
+    {name: `EMA${s}`, short: `EMA${s}`, color: C.s100, values: cut(d.ema[2])},
+  ];
+  const kind = {triggered: 'trigger', in_trade: 'entry', exited: 'exit', cancelled: 'cancelled'};
+  const words = e => {
+    const p = money(e.close, ccy).replace(/<[^>]+>/g, '');
+    if (e.state === 'triggered') return `Trigger ${fmtDate(e.date)}: closed ${p} above EMA${f}`;
+    if (e.state === 'in_trade') return `Entry ${fmtDate(e.date)} at ${p}`;
+    if (e.state === 'cancelled') return `Cancelled ${fmtDate(e.date)}: closed ${p} below EMA${f}`;
+    return `Exit ${fmtDate(e.date)} at ${p} (${e.reason})` + (e.ret != null ? `, trade ${e.ret >= 0 ? '+' : ''}${(e.ret * 100).toFixed(1)}%` : '');
+  };
+  const at = {};
+  const markers = (d.events || []).map(e => {
+    const i = dates.indexOf(e.date);
+    if (i < 0) return null;
+    (at[i] = at[i] || []).push(words(e));
+    return {i, kind: kind[e.state], title: words(e)};
+  }).filter(Boolean);
+  const cur = d.current || {};
+  const lines = cur.state === 'in_trade' && cur.stop != null ? [{
+    y: cur.stop, from: Math.max(0, dates.indexOf(cur.entry_date)), color: C.bad,
+    label: `${cur.phase === 2 ? 'Swing low' : 'Stop'} ${money(cur.stop, ccy).replace(/<[^>]+>/g, '')}`,
+  }] : [];
+
+  $('lazystatus').innerHTML = lazyStatus(cur, tf, ccy);
+  $('pricelegend').innerHTML = legend(series) + `<div class="legend-row marker-key">
+    <span><b class="mk up">▲</b>entry</span><span><b class="mk down">▼</b>exit</span>
+    <span><b class="mk trig">●</b>trigger</span><span><b class="mk">×</b>cancelled</span>
+    ${lines.length ? '<span><b class="mk down">- -</b>current stop</span>' : ''}</div>`;
+  lineChart(host, {
+    title: `${SYMBOL} ${tf} closing price with EMA ${f}, ${m} and ${s} and lazy-system signals`,
+    dates, series, markers, lines, height: window.innerWidth < 640 ? 300 : 360,
+    fmtY: (v, step) => sym(ccy) + v.toLocaleString('en-GB', {maximumFractionDigits: step < 1 ? 2 : 0, minimumFractionDigits: step < 1 ? 2 : 0}),
+    tip: i => `<b>${tf === 'weekly' ? 'Week to ' : ''}${fmtDate(dates[i])}</b>` + series.map(x =>
+      `<div><i style="background:${x.color}"></i>${x.short}<span>${x.values[i] == null ? '–' : money(x.values[i], ccy)}</span></div>`).join('') +
+      (at[i] ? at[i].map(w => `<div class="tip-ev">${esc(w)}</div>`).join('') : ''),
   });
 }
 
@@ -163,8 +250,11 @@ function render(data) {
 
     <section class="panel">
       <div class="panel-h"><h3>Price</h3>
-        <div class="seg" role="group" aria-label="Chart range">${RANGES.map(([k]) =>
+        <div class="seg seg-view" role="group" aria-label="Averages shown">${VIEWS.map(([k, l]) =>
+          `<button data-view="${k}" aria-pressed="${k === view}">${l}</button>`).join('')}</div>
+        <div class="seg seg-range" role="group" aria-label="Chart range">${RANGES.map(([k]) =>
           `<button data-range="${k}" aria-pressed="${k === range}">${k}</button>`).join('')}</div></div>
+      <div class="small lazystatus" id="lazystatus"></div>
       <div id="pricelegend"></div>
       <div class="chart" id="pricechart"></div>
       ${priceTable()}
@@ -188,11 +278,18 @@ function render(data) {
       ${historyTable()}
     </section>`;
 
-  $('content').querySelector('.seg').addEventListener('click', e => {
+  $('content').querySelector('.seg-range').addEventListener('click', e => {
     const b = e.target.closest('[data-range]');
     if (!b) return;
     range = b.dataset.range; store.set('detail_range', range);
-    $('content').querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x.dataset.range === range));
+    $('content').querySelectorAll('.seg-range button').forEach(x => x.setAttribute('aria-pressed', x.dataset.range === range));
+    drawPrice();
+  });
+  $('content').querySelector('.seg-view').addEventListener('click', e => {
+    const b = e.target.closest('[data-view]');
+    if (!b) return;
+    view = b.dataset.view; store.set('detail_view', view);
+    $('content').querySelectorAll('.seg-view button').forEach(x => x.setAttribute('aria-pressed', x.dataset.view === view));
     drawPrice();
   });
   $('simbuy').addEventListener('click', () => Portfolio.buy(ROW, LATEST));

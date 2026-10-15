@@ -178,6 +178,7 @@ def run(dates, close, low, high, settings=None, direction="long"):
         "events": events,
         "trades": trades,
         "bar_dates": dates,
+        "series": {"close": close, "ema": [e1, e2, e3]},
     }
     if state == "in_trade":
         if phase == 1:
@@ -209,6 +210,25 @@ def summary(result):
 
 
 FEED_STATES = ("triggered", "in_trade", "exited", "cancelled")
+
+
+def chart_data(result, since):
+    """What the detail-page chart needs for one timeframe: bars from `since` on (closes and the
+    three EMAs, which were worked out over the full history so they're properly settled), the
+    signals in that window, and the current state (with the trailing stop if in a trade)."""
+    if result.get("state") == "insufficient" or not result.get("bar_dates"):
+        return {"state": result.get("state", "insufficient")}
+    dates = result["bar_dates"]
+    start = next((i for i, d in enumerate(dates) if d >= since), len(dates))
+    r4 = lambda xs: [round(x, 4) for x in xs[start:]]
+    return {
+        "dates": dates[start:],
+        "close": r4(result["series"]["close"]),
+        "ema": [r4(e) for e in result["series"]["ema"]],
+        "events": [dict({k: (round(v, 4) if isinstance(v, float) else v) for k, v in e.items()})
+                   for e in result["events"] if e["date"] >= dates[min(start, len(dates) - 1)] and e["state"] in FEED_STATES],
+        "current": summary(result),
+    }
 
 
 def recent_events(result, symbol, timeframe, bars):

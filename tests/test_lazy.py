@@ -146,6 +146,20 @@ class Calculations(unittest.TestCase):
         r = run(UP + [23, 22, 24, 25, 28, 32, 30])
         self.assertNotIn("phase_2", [e["state"] for e in lazy.recent_events(r, "X", "daily", 10)])
 
+    def test_chart_data_window(self):
+        c = UP + [23, 22, 24, 25, 26, 27, 20]
+        r = run(c)
+        d = days(len(c))
+        cd = lazy.chart_data(r, d[10])
+        self.assertEqual(cd["dates"], d[10:])
+        self.assertEqual(len(cd["close"]), len(cd["dates"]))
+        self.assertTrue(all(len(e) == len(cd["dates"]) for e in cd["ema"]))
+        # EMAs in the window are the full-history values, not restarted at the window's start
+        self.assertAlmostEqual(cd["ema"][2][0], lazy.ema(c, 8)[10], places=4)
+        self.assertEqual([e["state"] for e in cd["events"]], ["triggered", "in_trade", "exited"])
+        self.assertEqual(cd["current"]["state"], "exited")
+        self.assertEqual(lazy.chart_data(run([1, 2, 3]), d[0]), {"state": "insufficient"})
+
     def test_summary_is_small(self):
         r = lazy.summary(run(UP + [23, 22, 24, 25, 26]))
         self.assertEqual(set(r), {"state", "since", "bars", "trend", "entry", "entry_date", "phase", "stop", "date"})
