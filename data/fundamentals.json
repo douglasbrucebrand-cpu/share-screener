@@ -1797,5 +1797,18 @@
   "yahoo_price_to_sales": null,
   "error": null,
   "fetched_at": "2026-10-15T11:32:51+00:00"
+ },
+ "QDVE.DE": {
+  "name": "iShsV-S&P 500 Inf.Te.Sec.U.ETFR",
+  "quote_currency_raw": "EUR",
+  "financial_currency": null,
+  "income": [],
+  "trailing_pe": null,
+  "forward_pe": null,
+  "market_cap": null,
+  "total_revenue": null,
+  "yahoo_price_to_sales": null,
+  "error": null,
+  "fetched_at": "2026-10-18T18:26:33+00:00"
  }
 }
