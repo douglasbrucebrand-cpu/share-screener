@@ -1625,13 +1625,13 @@
     "ni": 19037000000.0
    }
   ],
-  "trailing_pe": 19.179672,
-  "forward_pe": 8.757456,
-  "market_cap": 342432514048.0,
+  "trailing_pe": 20.768332,
+  "forward_pe": 9.161551,
+  "market_cap": 358233440256.0,
   "total_revenue": 236381995008.0,
-  "yahoo_price_to_sales": 1.4486405,
+  "yahoo_price_to_sales": 1.5154853,
   "error": null,
-  "fetched_at": "2026-10-13T13:50:55+00:00"
+  "fetched_at": "2026-10-21T05:23:41+00:00"
  },
  "PPH.JO": {
   "name": "Pepkor Holdings Ltd",
@@ -1663,13 +1663,13 @@
     "ni": 6114000000.0
    }
   ],
-  "trailing_pe": 11.3950615,
-  "forward_pe": 9.66472,
-  "market_cap": 68075196416.0,
+  "trailing_pe": 12.076923,
+  "forward_pe": 9.988018,
+  "market_cap": 69476524032.0,
   "total_revenue": 101731000320.0,
-  "yahoo_price_to_sales": 0.66916865,
+  "yahoo_price_to_sales": 0.68294346,
   "error": null,
-  "fetched_at": "2026-10-13T15:44:48+00:00"
+  "fetched_at": "2026-10-21T05:23:41+00:00"
  },
  "GOOG": {
   "name": "Alphabet Inc.",
@@ -1701,13 +1701,13 @@
     "ni": 59972000000.0
    }
   ],
-  "trailing_pe": 17.683893,
-  "forward_pe": 23.119963,
-  "market_cap": 4310318448640.0,
+  "trailing_pe": 16.879076,
+  "forward_pe": 21.918493,
+  "market_cap": 4114150064128.0,
   "total_revenue": 445865984000.0,
-  "yahoo_price_to_sales": 9.667296,
+  "yahoo_price_to_sales": 9.2273245,
   "error": null,
-  "fetched_at": "2026-10-13T15:44:48+00:00"
+  "fetched_at": "2026-10-21T05:23:42+00:00"
  },
  "MSFT": {
   "name": "Microsoft Corporation",
@@ -1739,13 +1739,13 @@
     "ni": 72361000000.0
    }
   ],
-  "trailing_pe": 30.728168,
-  "forward_pe": 23.03891,
-  "market_cap": 4050078138368.0,
+  "trailing_pe": 29.63064,
+  "forward_pe": 22.442898,
+  "market_cap": 3949425065984.0,
   "total_revenue": 331839012864.0,
-  "yahoo_price_to_sales": 12.204948,
+  "yahoo_price_to_sales": 11.901629,
   "error": null,
-  "fetched_at": "2026-10-13T15:44:48+00:00"
+  "fetched_at": "2026-10-21T05:23:42+00:00"
  },
  "MSCI": {
   "name": "MSCI Inc.",
