@@ -29,13 +29,13 @@
     "ni": 4368000000.0
    }
   ],
-  "trailing_pe": 27.068577,
-  "forward_pe": 13.640933,
-  "market_cap": 5242072072192.0,
+  "trailing_pe": 27.307207,
+  "forward_pe": 13.572443,
+  "market_cap": 5215751766016.0,
   "total_revenue": 302970011648.0,
-  "yahoo_price_to_sales": 17.30228,
+  "yahoo_price_to_sales": 17.215406,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:29+00:00"
+  "fetched_at": "2026-10-27T05:25:09+00:00"
  },
  "AMD": {
   "name": "Advanced Micro Devices, Inc.",
@@ -67,13 +67,13 @@
     "ni": 1320000000.0
    }
   ],
-  "trailing_pe": 134.84962,
-  "forward_pe": 34.1357,
-  "market_cap": 878353186816.0,
+  "trailing_pe": 135.53062,
+  "forward_pe": 33.719627,
+  "market_cap": 867301392384.0,
   "total_revenue": 41305001984.0,
-  "yahoo_price_to_sales": 21.265057,
+  "yahoo_price_to_sales": 20.99749,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:30+00:00"
+  "fetched_at": "2026-10-27T05:25:10+00:00"
  },
  "INTC": {
   "name": "Intel Corporation",
@@ -106,12 +106,12 @@
    }
   ],
   "trailing_pe": null,
-  "forward_pe": 43.568417,
-  "market_cap": 486480248832.0,
+  "forward_pe": 42.03625,
+  "market_cap": 478233919488.0,
   "total_revenue": 57031999488.0,
-  "yahoo_price_to_sales": 8.529953,
+  "yahoo_price_to_sales": 8.385362,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:30+00:00"
+  "fetched_at": "2026-10-27T05:25:10+00:00"
  },
  "QCOM": {
   "name": "QUALCOMM Incorporated",
@@ -143,13 +143,13 @@
     "ni": 12936000000.0
    }
   ],
-  "trailing_pe": 19.923077,
-  "forward_pe": 17.02914,
-  "market_cap": 185302188032.0,
+  "trailing_pe": 21.229315,
+  "forward_pe": 17.631405,
+  "market_cap": 191783976960.0,
   "total_revenue": 44068999168.0,
-  "yahoo_price_to_sales": 4.2048197,
+  "yahoo_price_to_sales": 4.3519025,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:30+00:00"
+  "fetched_at": "2026-10-27T05:25:11+00:00"
  },
  "AVGO": {
   "name": "Broadcom Inc.",
@@ -181,13 +181,13 @@
     "ni": 11495000000.0
    }
   ],
-  "trailing_pe": 42.7318,
-  "forward_pe": 17.249619,
-  "market_cap": 1597208788992.0,
+  "trailing_pe": 42.039593,
+  "forward_pe": 16.940022,
+  "market_cap": 1571335831552.0,
   "total_revenue": 89103998976.0,
-  "yahoo_price_to_sales": 17.92522,
+  "yahoo_price_to_sales": 17.634851,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:31+00:00"
+  "fetched_at": "2026-10-27T05:25:11+00:00"
  },
  "TSM": {
   "name": "Taiwan Semiconductor Manufactur",
@@ -219,13 +219,13 @@
     "ni": 992923400000.0
    }
   ],
-  "trailing_pe": 26.731552,
-  "forward_pe": 17.969416,
-  "market_cap": 2179460104192.0,
+  "trailing_pe": 27.502916,
+  "forward_pe": 18.146877,
+  "market_cap": 2200983830528.0,
   "total_revenue": 4944817029120.0,
-  "yahoo_price_to_sales": 0.44075647,
+  "yahoo_price_to_sales": 0.44510925,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:31+00:00"
+  "fetched_at": "2026-10-27T05:25:12+00:00"
  },
  "ARM": {
   "name": "Arm Holdings plc",
@@ -257,13 +257,13 @@
     "ni": 524000000.0
    }
   ],
-  "trailing_pe": 235.10309,
-  "forward_pe": 74.458984,
-  "market_cap": 243557089280.0,
+  "trailing_pe": 230.25774,
+  "forward_pe": 72.83524,
+  "market_cap": 238537490432.0,
   "total_revenue": 5155999744.0,
-  "yahoo_price_to_sales": 47.237606,
+  "yahoo_price_to_sales": 46.26406,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:31+00:00"
+  "fetched_at": "2026-10-27T05:25:12+00:00"
  },
  "MRVL": {
   "name": "Marvell Technology, Inc.",
@@ -295,19 +295,25 @@
     "ni": -163500000.0
    }
   ],
-  "trailing_pe": 75.02848,
-  "forward_pe": 32.349392,
-  "market_cap": 213073887232.0,
+  "trailing_pe": 75.17042,
+  "forward_pe": 31.897766,
+  "market_cap": 210099175424.0,
   "total_revenue": 9450300416.0,
-  "yahoo_price_to_sales": 22.546785,
+  "yahoo_price_to_sales": 22.23201,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:32+00:00"
+  "fetched_at": "2026-10-27T05:25:13+00:00"
  },
  "MU": {
   "name": "Micron Technology, Inc.",
   "quote_currency_raw": "USD",
   "financial_currency": "USD",
   "income": [
+   {
+    "period_end": "2026-08-31",
+    "rev": 133188000000.0,
+    "gp": 107504000000.0,
+    "ni": 84969000000.0
+   },
    {
     "period_end": "2025-08-31",
     "rev": 37378000000.0,
@@ -325,21 +331,15 @@
     "rev": 15540000000.0,
     "gp": -1416000000.0,
     "ni": -5833000000.0
-   },
-   {
-    "period_end": "2022-08-31",
-    "rev": 30758000000.0,
-    "gp": 13898000000.0,
-    "ni": 8687000000.0
    }
   ],
-  "trailing_pe": 11.824121,
-  "forward_pe": 4.373741,
-  "market_cap": 1023824887808.0,
+  "trailing_pe": 12.157944,
+  "forward_pe": 4.3679414,
+  "market_cap": 1022467178496.0,
   "total_revenue": 133188001792.0,
-  "yahoo_price_to_sales": 7.6870656,
+  "yahoo_price_to_sales": 7.6768713,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:32+00:00"
+  "fetched_at": "2026-10-27T05:25:13+00:00"
  },
  "WDC": {
   "name": "Western Digital Corporation",
@@ -371,13 +371,13 @@
     "ni": -1684000000.0
    }
   ],
-  "trailing_pe": 12.332283,
-  "forward_pe": 10.592929,
-  "market_cap": 131840393216.0,
-  "total_revenue": 12919000064.0,
-  "yahoo_price_to_sales": 10.205154,
+  "trailing_pe": 12.526556,
+  "forward_pe": 8.917389,
+  "market_cap": 133307744256.0,
+  "total_revenue": 14481999872.0,
+  "yahoo_price_to_sales": 9.205065,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:32+00:00"
+  "fetched_at": "2026-10-27T05:25:14+00:00"
  },
  "STX": {
   "name": "Seagate Technology Holdings PLC",
@@ -409,13 +409,13 @@
     "ni": -529000000.0
    }
   ],
-  "trailing_pe": 45.985386,
-  "forward_pe": 11.57399,
-  "market_cap": 150263578624.0,
+  "trailing_pe": 46.346046,
+  "forward_pe": 11.215619,
+  "market_cap": 146488852480.0,
   "total_revenue": 12195000320.0,
-  "yahoo_price_to_sales": 12.321736,
+  "yahoo_price_to_sales": 12.012206,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:33+00:00"
+  "fetched_at": "2026-10-27T05:25:14+00:00"
  },
  "ASML": {
   "name": "ASML Holding N.V. - New York Re",
@@ -447,13 +447,13 @@
     "ni": 5624200000.0
    }
   ],
-  "trailing_pe": 40.39039,
-  "forward_pe": 26.23657,
-  "market_cap": 634829275136.0,
+  "trailing_pe": 39.146164,
+  "forward_pe": 25.319855,
+  "market_cap": 613161041920.0,
   "total_revenue": 39473500160.0,
-  "yahoo_price_to_sales": 16.082417,
+  "yahoo_price_to_sales": 15.533485,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:33+00:00"
+  "fetched_at": "2026-10-27T05:25:15+00:00"
  },
  "AMAT": {
   "name": "Applied Materials, Inc.",
@@ -485,13 +485,13 @@
     "ni": 6525000000.0
    }
   ],
-  "trailing_pe": 35.308548,
-  "forward_pe": 22.341211,
-  "market_cap": 327843020800.0,
+  "trailing_pe": 33.44176,
+  "forward_pe": 20.961075,
+  "market_cap": 307590430720.0,
   "total_revenue": 30837000192.0,
-  "yahoo_price_to_sales": 10.631482,
+  "yahoo_price_to_sales": 9.97472,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:33+00:00"
+  "fetched_at": "2026-10-27T05:25:15+00:00"
  },
  "LRCX": {
   "name": "Lam Research Corporation",
@@ -523,13 +523,13 @@
     "ni": 4510931000.0
    }
   ],
-  "trailing_pe": 47.256947,
-  "forward_pe": 23.135067,
-  "market_cap": 340637745152.0,
-  "total_revenue": 23232690176.0,
-  "yahoo_price_to_sales": 14.662002,
+  "trailing_pe": 34.271286,
+  "forward_pe": 19.542324,
+  "market_cap": 297213296640.0,
+  "total_revenue": 26127935488.0,
+  "yahoo_price_to_sales": 11.375307,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:34+00:00"
+  "fetched_at": "2026-10-27T05:25:16+00:00"
  },
  "KLAC": {
   "name": "KLA Corporation",
@@ -561,13 +561,13 @@
     "ni": 3387277000.0
    }
   ],
-  "trailing_pe": 45.340595,
-  "forward_pe": 24.686998,
-  "market_cap": 217153060864.0,
+  "trailing_pe": 40.76776,
+  "forward_pe": 22.136703,
+  "market_cap": 194720022528.0,
   "total_revenue": 13579475968.0,
-  "yahoo_price_to_sales": 15.991269,
+  "yahoo_price_to_sales": 14.339289,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:34+00:00"
+  "fetched_at": "2026-10-27T05:25:16+00:00"
  },
  "TER": {
   "name": "Teradyne, Inc.",
@@ -599,13 +599,13 @@
     "ni": 715501000.0
    }
   ],
-  "trailing_pe": 44.61835,
-  "forward_pe": 28.750736,
-  "market_cap": 52457013248.0,
+  "trailing_pe": 42.445053,
+  "forward_pe": 27.033293,
+  "market_cap": 48309293056.0,
   "total_revenue": 4464031232.0,
-  "yahoo_price_to_sales": 11.75104,
+  "yahoo_price_to_sales": 10.821898,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:34+00:00"
+  "fetched_at": "2026-10-27T05:25:16+00:00"
  },
  "GFS": {
   "name": "GlobalFoundries Inc.",
@@ -637,13 +637,13 @@
     "ni": 1448000000.0
    }
   ],
-  "trailing_pe": 36.595238,
-  "forward_pe": 17.541525,
-  "market_cap": 25702574080.0,
+  "trailing_pe": 35.15625,
+  "forward_pe": 17.11925,
+  "market_cap": 25083838464.0,
   "total_revenue": 6937999872.0,
-  "yahoo_price_to_sales": 3.7046087,
+  "yahoo_price_to_sales": 3.615428,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:34+00:00"
+  "fetched_at": "2026-10-27T05:25:17+00:00"
  },
  "UMC": {
   "name": "United Microelectronics Corpora",
@@ -675,13 +675,13 @@
     "ni": 89478805000.0
    }
   ],
-  "trailing_pe": 18.592592,
-  "forward_pe": 22.865992,
-  "market_cap": 50358804480.0,
+  "trailing_pe": 19.373737,
+  "forward_pe": 21.841124,
+  "market_cap": 48101687296.0,
   "total_revenue": 250707148800.0,
-  "yahoo_price_to_sales": 0.20086704,
+  "yahoo_price_to_sales": 0.19186404,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:35+00:00"
+  "fetched_at": "2026-10-27T05:25:17+00:00"
  },
  "TXN": {
   "name": "Texas Instruments Incorporated",
@@ -713,13 +713,13 @@
     "ni": 8749000000.0
    }
   ],
-  "trailing_pe": 42.096035,
-  "forward_pe": 25.827383,
-  "market_cap": 252193341440.0,
-  "total_revenue": 19452999680.0,
-  "yahoo_price_to_sales": 12.964239,
+  "trailing_pe": 38.666664,
+  "forward_pe": 25.872766,
+  "market_cap": 272257400832.0,
+  "total_revenue": 20765999104.0,
+  "yahoo_price_to_sales": 13.110729,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:35+00:00"
+  "fetched_at": "2026-10-27T05:25:18+00:00"
  },
  "ADI": {
   "name": "Analog Devices, Inc.",
@@ -751,13 +751,13 @@
     "ni": 2748561000.0
    }
   ],
-  "trailing_pe": 46.94643,
-  "forward_pe": 23.940945,
-  "market_cap": 191088394240.0,
+  "trailing_pe": 48.447742,
+  "forward_pe": 24.72186,
+  "market_cap": 197668782080.0,
   "total_revenue": 13881744384.0,
-  "yahoo_price_to_sales": 13.765446,
+  "yahoo_price_to_sales": 14.239477,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:35+00:00"
+  "fetched_at": "2026-10-27T05:25:18+00:00"
  },
  "ON": {
   "name": "ON Semiconductor Corporation",
@@ -789,13 +789,13 @@
     "ni": 1902200000.0
    }
   ],
-  "trailing_pe": 47.1742,
-  "forward_pe": 16.11318,
-  "market_cap": 28466978816.0,
+  "trailing_pe": 47.780643,
+  "forward_pe": 16.230549,
+  "market_cap": 28832935936.0,
   "total_revenue": 6197799936.0,
-  "yahoo_price_to_sales": 4.593078,
+  "yahoo_price_to_sales": 4.6521244,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:36+00:00"
+  "fetched_at": "2026-10-27T05:25:19+00:00"
  },
  "MCHP": {
   "name": "Microchip Technology Incorporat",
@@ -827,13 +827,13 @@
     "ni": 2237700000.0
    }
   ],
-  "trailing_pe": 109.45588,
-  "forward_pe": 16.197514,
-  "market_cap": 40416137216.0,
+  "trailing_pe": 108.42857,
+  "forward_pe": 16.50305,
+  "market_cap": 41214361600.0,
   "total_revenue": 5122299904.0,
-  "yahoo_price_to_sales": 7.8902326,
+  "yahoo_price_to_sales": 8.046065,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:36+00:00"
+  "fetched_at": "2026-10-27T05:25:19+00:00"
  },
  "NXPI": {
   "name": "NXP Semiconductors N.V.",
@@ -865,13 +865,13 @@
     "ni": 2787000000.0
    }
   ],
-  "trailing_pe": 19.59064,
-  "forward_pe": 12.578083,
-  "market_cap": 58045673472.0,
+  "trailing_pe": 20.993168,
+  "forward_pe": 13.436358,
+  "market_cap": 61989519360.0,
   "total_revenue": 13185000448.0,
-  "yahoo_price_to_sales": 4.402402,
+  "yahoo_price_to_sales": 4.701518,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:36+00:00"
+  "fetched_at": "2026-10-27T05:25:20+00:00"
  },
  "MPWR": {
   "name": "Monolithic Power Systems, Inc.",
@@ -903,13 +903,13 @@
     "ni": 437672000.0
    }
   ],
-  "trailing_pe": 73.65805,
-  "forward_pe": 35.653122,
-  "market_cap": 61608615936.0,
+  "trailing_pe": 71.00182,
+  "forward_pe": 33.09475,
+  "market_cap": 57363148800.0,
   "total_revenue": 3273157888.0,
-  "yahoo_price_to_sales": 18.822378,
+  "yahoo_price_to_sales": 17.525322,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:37+00:00"
+  "fetched_at": "2026-10-27T05:25:20+00:00"
  },
  "IONQ": {
   "name": "IonQ, Inc.",
@@ -942,12 +942,12 @@
    }
   ],
   "trailing_pe": null,
-  "forward_pe": -22.89889,
-  "market_cap": 12470075392.0,
+  "forward_pe": -22.88401,
+  "market_cap": 13208580096.0,
   "total_revenue": 246474000.0,
-  "yahoo_price_to_sales": 50.593876,
+  "yahoo_price_to_sales": 53.590157,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:37+00:00"
+  "fetched_at": "2026-10-27T05:25:21+00:00"
  },
  "RGTI": {
   "name": "Rigetti Computing, Inc.",
@@ -980,12 +980,12 @@
    }
   ],
   "trailing_pe": null,
-  "forward_pe": -56.650486,
-  "market_cap": 3895081216.0,
+  "forward_pe": -55.533978,
+  "market_cap": 3818314240.0,
   "total_revenue": 13353000.0,
-  "yahoo_price_to_sales": 291.70084,
+  "yahoo_price_to_sales": 285.95178,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:37+00:00"
+  "fetched_at": "2026-10-27T05:25:21+00:00"
  },
  "QBTS": {
   "name": "D-Wave Quantum Inc.",
@@ -1018,12 +1018,12 @@
    }
   ],
   "trailing_pe": null,
-  "forward_pe": -31.325302,
-  "market_cap": 4490982912.0,
+  "forward_pe": -30.557394,
+  "market_cap": 4380891136.0,
   "total_revenue": 12425000.0,
-  "yahoo_price_to_sales": 361.44733,
+  "yahoo_price_to_sales": 352.58682,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:38+00:00"
+  "fetched_at": "2026-10-27T05:25:21+00:00"
  },
  "QUBT": {
   "name": "Quantum Computing Inc.",
@@ -1056,12 +1056,12 @@
    }
   ],
   "trailing_pe": null,
-  "forward_pe": -27.126379,
-  "market_cap": 1453146880.0,
+  "forward_pe": -27.084126,
+  "market_cap": 1450883328.0,
   "total_revenue": 9824000.0,
-  "yahoo_price_to_sales": 147.91805,
+  "yahoo_price_to_sales": 147.68764,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:38+00:00"
+  "fetched_at": "2026-10-27T05:25:22+00:00"
  },
  "IBM": {
   "name": "International Business Machines",
@@ -1093,13 +1093,13 @@
     "ni": 1640000000.0
    }
   ],
-  "trailing_pe": 20.6274,
-  "forward_pe": 17.976316,
-  "market_cap": 222711152640.0,
-  "total_revenue": 69094998016.0,
-  "yahoo_price_to_sales": 3.2232602,
+  "trailing_pe": 21.624573,
+  "forward_pe": 19.148808,
+  "market_cap": 239531425792.0,
+  "total_revenue": 69868003328.0,
+  "yahoo_price_to_sales": 3.428342,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:38+00:00"
+  "fetched_at": "2026-10-27T05:25:22+00:00"
  },
  "VST": {
   "name": "Vistra Corp.",
@@ -1131,13 +1131,13 @@
     "ni": -1227000000.0
    }
   ],
-  "trailing_pe": 25.63356,
-  "forward_pe": 14.435065,
-  "market_cap": 50244587520.0,
+  "trailing_pe": 23.900505,
+  "forward_pe": 13.527947,
+  "market_cap": 47569575936.0,
   "total_revenue": 19211999232.0,
-  "yahoo_price_to_sales": 2.615271,
+  "yahoo_price_to_sales": 2.4760346,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:39+00:00"
+  "fetched_at": "2026-10-27T05:25:23+00:00"
  },
  "CEG": {
   "name": "Constellation Energy Corporatio",
@@ -1169,13 +1169,13 @@
     "ni": -160000000.0
    }
   ],
-  "trailing_pe": 26.53125,
-  "forward_pe": 19.803299,
-  "market_cap": 93250166784.0,
+  "trailing_pe": 24.680353,
+  "forward_pe": 18.906284,
+  "market_cap": 89455525888.0,
   "total_revenue": 31270000640.0,
-  "yahoo_price_to_sales": 2.9820967,
+  "yahoo_price_to_sales": 2.860746,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:39+00:00"
+  "fetched_at": "2026-10-27T05:25:23+00:00"
  },
  "OKLO": {
   "name": "Oklo Inc.",
@@ -1208,12 +1208,12 @@
    }
   ],
   "trailing_pe": null,
-  "forward_pe": -25.51398,
-  "market_cap": 5067120640.0,
+  "forward_pe": -24.626194,
+  "market_cap": 4825297920.0,
   "total_revenue": 1210000.0,
-  "yahoo_price_to_sales": 4187.703,
+  "yahoo_price_to_sales": 3987.8496,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:39+00:00"
+  "fetched_at": "2026-10-27T05:25:24+00:00"
  },
  "SMR": {
   "name": "NuScale Power Corporation",
@@ -1246,12 +1246,12 @@
    }
   ],
   "trailing_pe": null,
-  "forward_pe": -8.619906,
-  "market_cap": 2335116544.0,
+  "forward_pe": -7.9430876,
+  "market_cap": 2162752768.0,
   "total_revenue": 10690000.0,
-  "yahoo_price_to_sales": 218.43935,
+  "yahoo_price_to_sales": 202.3155,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:40+00:00"
+  "fetched_at": "2026-10-27T05:25:24+00:00"
  },
  "TLN": {
   "name": "Talen Energy Corporation",
@@ -1284,12 +1284,12 @@
    }
   ],
   "trailing_pe": null,
-  "forward_pe": 11.331607,
-  "market_cap": 16612706304.0,
+  "forward_pe": 10.909128,
+  "market_cap": 15976993792.0,
   "total_revenue": 3740999936.0,
-  "yahoo_price_to_sales": 4.440713,
+  "yahoo_price_to_sales": 4.2707815,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:40+00:00"
+  "fetched_at": "2026-10-27T05:25:24+00:00"
  },
  "GEV": {
   "name": "GE Vernova Inc.",
@@ -1321,13 +1321,13 @@
     "ni": -2736000000.0
    }
   ],
-  "trailing_pe": 26.044724,
-  "forward_pe": 35.94892,
-  "market_cap": 241948082176.0,
+  "trailing_pe": 24.516054,
+  "forward_pe": 33.945065,
+  "market_cap": 227747168256.0,
   "total_revenue": 41366999040.0,
-  "yahoo_price_to_sales": 5.848819,
+  "yahoo_price_to_sales": 5.505528,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:40+00:00"
+  "fetched_at": "2026-10-27T05:25:25+00:00"
  },
  "NPN.JO": {
   "name": "Naspers Ltd -N-",
@@ -1359,13 +1359,13 @@
     "ni": 4331000000.0
    }
   ],
-  "trailing_pe": 6.4101887,
-  "forward_pe": 6.9475727,
-  "market_cap": 524351340544.0,
+  "trailing_pe": 6.3027453,
+  "forward_pe": 6.8076453,
+  "market_cap": 506650787840.0,
   "total_revenue": 10848000000.0,
-  "yahoo_price_to_sales": 48.336224,
+  "yahoo_price_to_sales": 46.704533,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:41+00:00"
+  "fetched_at": "2026-10-27T05:25:25+00:00"
  },
  "PRX.JO": {
   "name": "Prosus N.V.",
@@ -1397,13 +1397,13 @@
     "ni": 10112000000.0
    }
   ],
-  "trailing_pe": 7.204886,
-  "forward_pe": 8.802508,
-  "market_cap": 1368461410304.0,
+  "trailing_pe": 6.9322186,
+  "forward_pe": 8.536773,
+  "market_cap": 1316672241664.0,
   "total_revenue": 9704999936.0,
-  "yahoo_price_to_sales": 141.00581,
+  "yahoo_price_to_sales": 135.66948,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:41+00:00"
+  "fetched_at": "2026-10-27T05:25:26+00:00"
  },
  "SBK.JO": {
   "name": "Standard Bank Group Ltd",
@@ -1435,13 +1435,13 @@
     "ni": 35242000000.0
    }
   ],
-  "trailing_pe": 9.581497,
-  "forward_pe": 8.270259,
-  "market_cap": 493079330816.0,
+  "trailing_pe": 9.832628,
+  "forward_pe": 8.209969,
+  "market_cap": 488966258688.0,
   "total_revenue": 185692995584.0,
-  "yahoo_price_to_sales": 2.6553469,
+  "yahoo_price_to_sales": 2.633197,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:41+00:00"
+  "fetched_at": "2026-10-27T05:25:26+00:00"
  },
  "FSR.JO": {
   "name": "Firstrand Ltd",
@@ -1473,13 +1473,13 @@
     "ni": 37450000000.0
    }
   ],
-  "trailing_pe": 12.578348,
-  "forward_pe": 8.725133,
-  "market_cap": 491076845568.0,
+  "trailing_pe": 13.438053,
+  "forward_pe": 9.002795,
+  "market_cap": 506704560128.0,
   "total_revenue": 132900003840.0,
-  "yahoo_price_to_sales": 3.6950853,
+  "yahoo_price_to_sales": 3.8126752,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:41+00:00"
+  "fetched_at": "2026-10-27T05:25:27+00:00"
  },
  "CPI.JO": {
   "name": "Capitec Limited",
@@ -1511,13 +1511,13 @@
     "ni": 9151472000.0
    }
   ],
-  "trailing_pe": 27.871063,
-  "forward_pe": 21.472746,
-  "market_cap": 511493177344.0,
+  "trailing_pe": 28.847904,
+  "forward_pe": 22.225334,
+  "market_cap": 529420288000.0,
   "total_revenue": 45069787136.0,
-  "yahoo_price_to_sales": 11.348915,
+  "yahoo_price_to_sales": 11.746678,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:42+00:00"
+  "fetched_at": "2026-10-27T05:25:27+00:00"
  },
  "NED.JO": {
   "name": "Nedbank Group Ltd",
@@ -1549,13 +1549,13 @@
     "ni": 15266000000.0
    }
   ],
-  "trailing_pe": 14.898369,
-  "forward_pe": 6.726263,
-  "market_cap": 129267539968.0,
+  "trailing_pe": 15.317536,
+  "forward_pe": 6.915508,
+  "market_cap": 132904493056.0,
   "total_revenue": 61503000576.0,
-  "yahoo_price_to_sales": 2.1018088,
+  "yahoo_price_to_sales": 2.1609433,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:42+00:00"
+  "fetched_at": "2026-10-27T05:25:28+00:00"
  },
  "ABG.JO": {
   "name": "Absa Group Limited",
@@ -1587,13 +1587,13 @@
     "ni": 20874000000.0
    }
   ],
-  "trailing_pe": 7.510713,
-  "forward_pe": 6.185226,
-  "market_cap": 177071620096.0,
+  "trailing_pe": 8.079768,
+  "forward_pe": 6.4458485,
+  "market_cap": 184532762624.0,
   "total_revenue": 104573001728.0,
-  "yahoo_price_to_sales": 1.6932824,
+  "yahoo_price_to_sales": 1.764631,
   "error": null,
-  "fetched_at": "2026-10-20T05:23:42+00:00"
+  "fetched_at": "2026-10-27T05:25:28+00:00"
  },
  "MTN.JO": {
   "name": "MTN Group Ltd",
@@ -1809,6 +1809,6 @@
   "total_revenue": null,
   "yahoo_price_to_sales": null,
   "error": null,
-  "fetched_at": "2026-10-18T18:26:33+00:00"
+  "fetched_at": "2026-10-27T05:25:28+00:00"
  }
 }
