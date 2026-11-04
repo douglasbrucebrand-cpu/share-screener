@@ -1625,13 +1625,13 @@
     "ni": 19037000000.0
    }
   ],
-  "trailing_pe": 20.513458,
-  "forward_pe": 9.289532,
-  "market_cap": 363237670912.0,
+  "trailing_pe": 21.625767,
+  "forward_pe": 9.914896,
+  "market_cap": 387690594304.0,
   "total_revenue": 236381995008.0,
-  "yahoo_price_to_sales": 1.5366554,
+  "yahoo_price_to_sales": 1.640102,
   "error": null,
-  "fetched_at": "2026-10-28T05:32:07+00:00"
+  "fetched_at": "2026-11-04T05:48:51+00:00"
  },
  "PPH.JO": {
   "name": "Pepkor Holdings Ltd",
@@ -1663,13 +1663,13 @@
     "ni": 6114000000.0
    }
   ],
-  "trailing_pe": 11.6603775,
-  "forward_pe": 9.828974,
-  "market_cap": 68370210816.0,
+  "trailing_pe": 11.097562,
+  "forward_pe": 9.799963,
+  "market_cap": 67116392448.0,
   "total_revenue": 101731000320.0,
-  "yahoo_price_to_sales": 0.6720686,
+  "yahoo_price_to_sales": 0.6597438,
   "error": null,
-  "fetched_at": "2026-10-28T05:32:07+00:00"
+  "fetched_at": "2026-11-04T05:48:51+00:00"
  },
  "GOOG": {
   "name": "Alphabet Inc.",
@@ -1701,13 +1701,13 @@
     "ni": 59972000000.0
    }
   ],
-  "trailing_pe": 15.762686,
-  "forward_pe": 20.628778,
-  "market_cap": 3874810232832.0,
-  "total_revenue": 445865984000.0,
-  "yahoo_price_to_sales": 8.690527,
+  "trailing_pe": 14.515909,
+  "forward_pe": 17.960585,
+  "market_cap": 3421051027456.0,
+  "total_revenue": 471097999360.0,
+  "yahoo_price_to_sales": 7.261867,
   "error": null,
-  "fetched_at": "2026-10-28T05:32:07+00:00"
+  "fetched_at": "2026-11-04T05:48:51+00:00"
  },
  "MSFT": {
   "name": "Microsoft Corporation",
@@ -1739,13 +1739,13 @@
     "ni": 72361000000.0
    }
   ],
-  "trailing_pe": 29.600557,
-  "forward_pe": 22.428717,
-  "market_cap": 3945415311360.0,
-  "total_revenue": 331839012864.0,
-  "yahoo_price_to_sales": 11.889546,
+  "trailing_pe": 26.473068,
+  "forward_pe": 21.546915,
+  "market_cap": 3868973072384.0,
+  "total_revenue": 346444988416.0,
+  "yahoo_price_to_sales": 11.167641,
   "error": null,
-  "fetched_at": "2026-10-28T05:32:07+00:00"
+  "fetched_at": "2026-11-04T05:48:52+00:00"
  },
  "MSCI": {
   "name": "MSCI Inc.",
