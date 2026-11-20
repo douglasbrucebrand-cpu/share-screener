@@ -1777,13 +1777,13 @@
     "ni": 870573000.0
    }
   ],
-  "trailing_pe": 34.4532,
-  "forward_pe": 29.051819,
-  "market_cap": 46582964224.0,
+  "trailing_pe": 33.015865,
+  "forward_pe": 27.83982,
+  "market_cap": 44639596544.0,
   "total_revenue": 3432358912.0,
-  "yahoo_price_to_sales": 13.571706,
+  "yahoo_price_to_sales": 13.005515,
   "error": null,
-  "fetched_at": "2026-11-13T12:51:40+00:00"
+  "fetched_at": "2026-11-20T13:49:05+00:00"
  },
  "STX40.JO": {
   "name": "Satrix 40 Portfolio",
@@ -1796,7 +1796,7 @@
   "total_revenue": null,
   "yahoo_price_to_sales": null,
   "error": null,
-  "fetched_at": "2026-11-13T12:51:40+00:00"
+  "fetched_at": "2026-11-20T13:49:05+00:00"
  },
  "QDVE.DE": {
   "name": "iShsV-S&P 500 Inf.Te.Sec.U.ETFR",
